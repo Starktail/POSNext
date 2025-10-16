@@ -487,7 +487,7 @@ posnext.PointOfSale.Controller = class {
 
 				process_return: (name) => {
 					this.recent_order_list.toggle_component(false);
-					frappe.db.get_doc('POS Invoice', name).then((doc) => {  // CHANGED from 'Sales Invoice'
+					frappe.db.get_doc('POS Invoice', name).then((doc) => {
 						frappe.run_serially([
 							() => this.make_return_invoice(doc),
 							() => this.cart.load_invoice(),
@@ -822,6 +822,7 @@ posnext.PointOfSale.Controller = class {
 		const is_stock_item = resp[1];
 
 		frappe.dom.unfreeze();
+		console.log(item_row)
 		const bold_uom = item_row.uom.bold();
 		const bold_item_code = item_row.item_code.bold();
 		const bold_warehouse = warehouse.bold();
@@ -854,7 +855,7 @@ posnext.PointOfSale.Controller = class {
 		if (res.message.includes(serial_no)) {
 			frappe.throw({
 				title: __("Not Available"),
-				message: __('Serial No: {0} has already been transacted into another Sales Invoice.', [serial_no.bold()])
+				message: __('Serial No: {0} has already been transacted into another POS Invoice.', [serial_no.bold()])
 			});
 		}
 	}

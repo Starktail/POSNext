@@ -22,10 +22,6 @@ posnext.PointOfSale.ItemSelector = class {
 			view = "Card"
 		}
 		this.custom_show_item_code = settings.custom_show_item_code
-		this.custom_show_last_incoming_rate = settings.custom_show_last_incoming_rate
-		this.custom_show_oem_part_number = settings.custom_show_oem_part_number
-		this.custom_show_posting_date = settings.custom_show_posting_date
-		this.custom_show_logical_rack = settings.custom_show_logical_rack
 		this.show_only_list_view = settings.custom_show_only_list_view
 		this.show_only_card_view = settings.custom_show_only_card_view
 		this.custom_edit_rate = settings.custom_edit_rate_and_uom
@@ -232,9 +228,9 @@ posnext.PointOfSale.ItemSelector = class {
 
 
 	render_item_list(items) {
-		this.$items_container.html('');
-		var me = this
+		var  me  = this
 		if(view === "List"){
+		this.$items_container.html('');
 			this.$items_container.append(
 				`<div class="abs-cart-container" style="overflow-y:hidden">
 					<div class="cart-header">
@@ -243,38 +239,17 @@ posnext.PointOfSale.ItemSelector = class {
 						<div style="flex: 1">${__('Avail. Qty')}</div>
 						<!--<div class="qty-header">${__('UOM')}</div>-->
 					</div>
-					<div class="cart-items-section" style="overflow-y:scroll;font-size: 12px"></div>
+					<div class="cart-items-section" style="overflow-y:hidden"></div>
 				</div>`)
 
 			function get_item_code_header() {
-				var flex_value = 3
-				 if(!me.custom_show_item_code && !me.custom_show_last_incoming_rate && !me.custom_show_oem_part_number && !me.custom_show_logical_rack){
-					flex_value = 2
-				}
-				var html_header = ``
+
 				if(me.custom_show_item_code){
-					// flex_value -= 1
-					html_header += `<div style="flex: 1">${__('Item Code')}</div>`
-				}
-				if(me.custom_show_last_incoming_rate){
-					// flex_value -= 1
-					html_header += `<div style="flex: 1">${__('Inc.Rate')}</div>`
-				}
-				if(me.custom_show_oem_part_number){
-					// flex_value -= 1
-					html_header += `<div style="flex: 1">${__('OEM')} <br> ${__('Part No.')}</div>`
-				}
-				if(me.custom_show_logical_rack){
-					// flex_value -= 1
-					html_header += `<div style="flex: 1">${__('Rack')}</div>`
-				}
-				if(flex_value > 0){
-					return `<div style="flex: ` + flex_value + `">${__('Item')}</div>` + html_header
+					return `<div style="flex: 2">${__('Item')}</div>
+						<div style="flex: 1">${__('Item Code')}</div>`
 				} else {
-					return `<div>${__('Item')}</div>` + html_header
+					return `<div style="flex: 3">${__('Item')}</div>`
 				}
-
-
             }
 			this.make_cart_items_section();
 
@@ -326,8 +301,7 @@ posnext.PointOfSale.ItemSelector = class {
 		$item_to_update.html(
 			`${get_item_image_html()}
 			${get_item_name()}
-			
-				<div style="overflow-wrap: break-word;overflow:hidden;white-space: normal;font-weight: 700;margin-right: 10px">
+				<div class="item-name" >
 					${item_data.item_name}
 				</div>
 				${get_description_html(item_data)}
@@ -335,25 +309,23 @@ posnext.PointOfSale.ItemSelector = class {
 			${get_item_code()}
 			${get_rate_discount_html()}`
 		)
-
-		function get_item_name() {
-			var flex_value = 4
-            if(me.custom_show_item_code && me.custom_show_last_incoming_rate && me.custom_show_oem_part_number){
-				flex_value = 3
-            }
-            // if(me.custom_show_item_code && me.custom_show_last_incoming_rate && !me.custom_show_oem_part_number){
-				// flex_value = 3
-            // }
-            if(!me.custom_show_item_code && !me.custom_show_last_incoming_rate && !me.custom_show_oem_part_number && !me.custom_show_logical_rack){
-				flex_value = 2
-            }
-            // if(me.custom_show_last_incoming_rate && me.custom_show_item_code){
-				// flex_value -= 1
-            // }
-            // if(me.custom_show_oem_part_number){
-				// flex_value -= 1
-            // }
-			return `<div class="" style="flex: ` + flex_value +`;overflow-wrap: break-word;overflow:hidden;white-space: normal">`
+			function get_item_name() {
+			if(me.custom_show_item_code){
+				return `<div class="item-name-desc" style="flex: 3">`
+			} else {
+				return `<div class="item-name-desc" style="flex: 4">`
+			}
+        }
+        function get_item_code() {
+			if(me.custom_show_item_code){
+				return `<div class="item-code-desc" style="flex: 1">
+					<div class="item-code" >
+						${item_data.item_code}
+					</div>
+				</div>`
+			} else {
+				return ``
+			}
         }
 		set_dynamic_rate_header_width();
 
