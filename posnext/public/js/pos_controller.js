@@ -16,7 +16,7 @@ posnext.PointOfSale.Controller = class {
 
 	}
 	setup_form_events() {
-		frappe.ui.form.on('Sales Invoice', {
+		frappe.ui.form.on('POS Invoice', {
 			after_save: function(frm) {
 				if (!frm.doc.pos_profile) return;
 	
@@ -461,7 +461,7 @@ posnext.PointOfSale.Controller = class {
 			wrapper: this.$components_wrapper,
 			events: {
 				open_invoice_data: (name) => {
-					frappe.db.get_doc('Sales Invoice', name).then((doc) => {
+					frappe.db.get_doc('POS Invoice', name).then((doc) => {
 						this.order_summary.load_summary_of(doc);
 					});
 				},
@@ -478,7 +478,7 @@ posnext.PointOfSale.Controller = class {
 		})
 	}
 
-	init_order_summary() {
+		init_order_summary() {
 		this.order_summary = new posnext.PointOfSale.PastOrderSummary({
 			wrapper: this.$components_wrapper,
 			pos_profile: this.settings,
@@ -487,7 +487,7 @@ posnext.PointOfSale.Controller = class {
 
 				process_return: (name) => {
 					this.recent_order_list.toggle_component(false);
-					frappe.db.get_doc('Sales Invoice', name).then((doc) => {
+					frappe.db.get_doc('POS Invoice', name).then((doc) => {  // CHANGED from 'Sales Invoice'
 						frappe.run_serially([
 							() => this.make_return_invoice(doc),
 							() => this.cart.load_invoice(),
@@ -561,7 +561,7 @@ posnext.PointOfSale.Controller = class {
 	}
 
 	make_sales_invoice_frm() {
-		const doctype = 'Sales Invoice';
+		const doctype = 'POS Invoice';
 		return new Promise(resolve => {
 			if (this.frm) {
 				this.frm = this.get_new_frm(this.frm);
@@ -582,7 +582,7 @@ posnext.PointOfSale.Controller = class {
 	}
 
 	get_new_frm(_frm) {
-		const doctype = 'Sales Invoice';
+		const doctype = 'POS Invoice';
 		const page = $('<div>');
 		const frm = _frm || new frappe.ui.form.Form(doctype, page, false);
 		const name = frappe.model.make_new_doc_and_get_name(doctype, true);
@@ -721,6 +721,11 @@ posnext.PointOfSale.Controller = class {
 				total_incoming_rate += (parseFloat(item.valuation_rate) * item.qty)
 			});
 			this.item_selector.update_total_incoming_rate(total_incoming_rate)
+
+			    if (item_row) {
+				this.cart.update_totals_section(this.frm);
+				this.cart.update_item_html(item_row);
+			}
 	
 			return item_row; // eslint-disable-line no-unsafe-finally
 		}

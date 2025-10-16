@@ -32,6 +32,20 @@
         () => this.check_opening_entry(""),
         () => this.reload_status = true
       ]);
+      this.setup_form_events();
+    }
+    setup_form_events() {
+      frappe.ui.form.on("POS Invoice", {
+        after_save: function(frm) {
+          if (!frm.doc.pos_profile)
+            return;
+          frappe.db.get_doc("POS Profile", frm.doc.pos_profile).then((pos_profile) => {
+            if (pos_profile.custom_stock_update) {
+              frm.set_value("update_stock", 0);
+            }
+          });
+        }
+      });
     }
     fetch_opening_entry(value) {
       return frappe.call("posnext.posnext.page.posnext.point_of_sale.check_opening_entry", { "user": frappe.session.user, "value": value });
@@ -427,7 +441,7 @@
         wrapper: this.$components_wrapper,
         events: {
           open_invoice_data: (name) => {
-            frappe.db.get_doc("Sales Invoice", name).then((doc) => {
+            frappe.db.get_doc("POS Invoice", name).then((doc) => {
               this.order_summary.load_summary_of(doc);
             });
           },
@@ -450,7 +464,7 @@
           get_frm: () => this.frm,
           process_return: (name) => {
             this.recent_order_list.toggle_component(false);
-            frappe.db.get_doc("Sales Invoice", name).then((doc) => {
+            frappe.db.get_doc("POS Invoice", name).then((doc) => {
               frappe.run_serially([
                 () => this.make_return_invoice(doc),
                 () => this.cart.load_invoice(),
@@ -517,7 +531,7 @@
       }
     }
     make_sales_invoice_frm() {
-      const doctype = "Sales Invoice";
+      const doctype = "POS Invoice";
       return new Promise((resolve) => {
         if (this.frm) {
           this.frm = this.get_new_frm(this.frm);
@@ -537,7 +551,7 @@
       });
     }
     get_new_frm(_frm) {
-      const doctype = "Sales Invoice";
+      const doctype = "POS Invoice";
       const page = $("<div>");
       const frm = _frm || new frappe.ui.form.Form(doctype, page, false);
       const name = frappe.model.make_new_doc_and_get_name(doctype, true);
@@ -610,7 +624,8 @@
                 item_code: bundle_item.item_code,
                 qty: bundle_item.qty * value,
                 rate: bundle_item.rate,
-                uom: bundle_item.uom
+                uom: bundle_item.uom,
+                custom_bundle_id: product_bundle.name
               }));
               for (const bundle_item of bundle_items) {
                 const bundle_item_row = this.frm.add_child("items", bundle_item);
@@ -633,9 +648,6 @@
 `).length || 0;
           item_row = this.frm.add_child("items", new_item);
           await this.trigger_new_item_events(item_row);
-          item_row["rate"] = rate;
-          item_row["valuation_rate"] = valuation_rate;
-          item_row["custom_valuation_rate"] = valuation_rate;
           item_row["custom_item_uoms"] = custom_item_uoms;
           item_row["custom_logical_rack"] = custom_logical_rack;
           if (this.item_details.$component.is(":visible"))
@@ -651,6 +663,10 @@
           total_incoming_rate += parseFloat(item.valuation_rate) * item.qty;
         });
         this.item_selector.update_total_incoming_rate(total_incoming_rate);
+        if (item_row) {
+          this.cart.update_totals_section(this.frm);
+          this.cart.update_item_html(item_row);
+        }
         return item_row;
       }
     }
@@ -881,6 +897,7 @@
       this.hide_images = settings.hide_images;
       this.reload_status = reload_status;
       this.auto_add_item = settings.auto_add_item_to_cart;
+      this.auto_search_serial = settings.custom_auto_search_serial_number;
       if (settings.custom_default_view) {
         view = settings.custom_default_view;
       }
@@ -899,6 +916,7 @@
       this.show_only_card_view = settings.custom_show_only_card_view;
       this.custom_edit_rate = settings.custom_edit_rate_and_uom;
       this.custom_show_incoming_rate = settings.custom_show_incoming_rate && settings.custom_edit_rate_and_uom;
+      this.custom_show_item_discription = settings.custom_show_item_discription;
       this.inti_component();
     }
     inti_component() {
@@ -1149,8 +1167,6 @@
       return this.$cart_items_wrapper.find(item_selector);
     }
     render_cart_item(item_data) {
-      console.log("Rener cart item");
-      console.log(item_data);
       const me = this;
       const currency = me.events.get_frm().currency || me.currency;
       this.$cart_items_wrapper.append(
@@ -1175,7 +1191,7 @@
 				<div style="overflow-wrap: break-word;overflow:hidden;white-space: normal;font-weight: 700;margin-right: 10px">
 					${item_data.item_name}
 				</div>
-				${get_description_html()}
+				${get_description_html(item_data)}
 			</div>
 			${get_item_code()}
 			${get_rate_discount_html()}`
@@ -1248,7 +1264,7 @@
 							<div class="item-rate" style="text-align: left">${format_currency(item_data.price_list_rate, currency)}</div>
 						</div>
 						<div class="item-qty" style="flex: 1;display:block;text-align: center"><span> ${item_data.actual_qty || 0}</span></div>
-						<div class="item-batch" style="flex: 1;display:block;text-align: center"><span> ${item_data.batch_no || 0}</span></div>
+					
 						
 					</div>`;
         } else {
@@ -1258,22 +1274,22 @@
 							<div class="item-rate" style="text-align: left">${format_currency(item_data.price_list_rate, currency)}</div>
 						</div>
 						<div class="item-qty" style="flex: 1;display:block;text-align: center"><span> ${item_data.actual_qty || 0}</span></div>
-						<div class="item-batch" style="flex: 1;display:block;text-align: center"><span> ${item_data.batch_no || 0}</span></div>
+						
 						
 					</div>`;
         }
       }
-      function get_description_html() {
-        if (item_data.description) {
-          if (item_data.description.indexOf("<div>") != -1) {
+      function get_description_html(item_data2) {
+        if (me.custom_show_item_discription) {
+          if (item_data2.description.indexOf("<div>") != -1) {
             try {
-              item_data.description = $(item_data.description).text();
+              item_data2.description = $(item_data2.description).text();
             } catch (error) {
-              item_data.description = item_data.description.replace(/<div>/g, " ").replace(/<\/div>/g, " ").replace(/ +/g, " ");
+              item_data2.description = item_data2.description.replace(/<div>/g, " ").replace(/<\/div>/g, " ").replace(/ +/g, " ");
             }
           }
-          item_data.description = frappe.ellipsis(item_data.description, 45);
-          return `<div class="item-desc">${item_data.description}</div>`;
+          item_data2.description = frappe.ellipsis(item_data2.description, 45);
+          return `<div class="item-desc">${item_data2.description}</div>`;
         }
         return ``;
       }
@@ -1512,7 +1528,6 @@
         });
       }
       this.$component.on("click", ".item-wrapper", function() {
-        console.log("Item Selected");
         const $item = $(this);
         const item_code = unescape($item.attr("data-item-code"));
         let batch_no = unescape($item.attr("data-batch-no"));
@@ -1587,7 +1602,9 @@
           const items = this.search_index[search_term];
           this.items = items;
           this.render_item_list(items);
-          this.auto_add_item && this.items.length == 1;
+          if (this.auto_search_serial && this.items.length === 1) {
+            this.add_filtered_item_to_cart();
+          }
           return;
         }
       }
@@ -1598,7 +1615,9 @@
         }
         this.items = items;
         this.render_item_list(items);
-        this.auto_add_item && this.items.length == 1;
+        if (this.auto_search_serial && this.items.length === 1) {
+          this.add_filtered_item_to_cart();
+        }
       });
     }
     add_filtered_item_to_cart() {
@@ -1642,6 +1661,8 @@
       this.custom_show_uom_in_cart = settings.custom_show_uom_in_cart && settings.custom_edit_rate_and_uom;
       this.show_branch = settings.show_branch;
       this.show_batch_in_cart = settings.show_batch_in_cart;
+      this.custom_show_item_discription = settings.custom_show_item_discription;
+      this.custom_show_item_barcode = settings.custom_show_item_barcode;
       this.settings = settings;
       this.warehouse = settings.warehouse;
       this.init_component();
@@ -1685,10 +1706,21 @@
       var html = `<div class="cart-container">
 				<div class="abs-cart-container">
 					<div class="cart-label">${__("Item Cart")}</div>
-					<div class="cart-header">
-						<div class="name-header" style="flex:3">${__("Item")}</div>
-						<div class="qty-header" style="flex: 1">${__("Qty")}</div>
-						`;
+					<div class="cart-header">`;
+      let item_name_flex = 3.5;
+      if (this.custom_use_discount_percentage && !this.custom_use_discount_amount) {
+        item_name_flex = 2.8;
+      }
+      if (this.custom_use_discount_amount && !this.custom_use_discount_percentage) {
+        item_name_flex = 2.8;
+      }
+      if (this.custom_use_discount_amount && this.custom_use_discount_percentage) {
+        item_name_flex = 2.5;
+      }
+      html += `<div class="name-header" style="flex:${item_name_flex}">${__("Item")}</div>`;
+      const header_container_flex = this.custom_edit_rate ? 6 : 4;
+      html += `<div style="display: flex; flex: ${header_container_flex}">`;
+      html += `<div class="qty-header" style="flex: 1">${__("Qty")}</div>`;
       if (this.custom_show_uom_in_cart) {
         html += `<div class="uom-header" style="flex: 1">${__("UOM")}</div>`;
       }
@@ -1708,13 +1740,14 @@
         html += `<div class="incoming-rate-header" style="flex: 1">${__("Inc.Rate")}</div>`;
       }
       if (this.custom_show_logical_rack_in_cart) {
-        html += `<div class="incoming-rate-header" style="flex: 1">${__("Rack")}</div>`;
+        html += `<div class="rack-header" style="flex: 1">${__("Rack")}</div>`;
       }
       if (this.custom_show_last_customer_rate) {
         html += `<div class="last-customer-rate-header" style="flex: 1">${__("LC Rate")}</div>`;
       }
-      html += `<div class="rate-amount-header" style="flex: 1;text-align: left">${__("Amount")}</div>
-					</div>
+      html += `<div class="rate-amount-header" style="flex: 1;text-align: left">${__("Amount")}</div>`;
+      html += `</div>`;
+      html += `</div>
 					<div class="cart-items-section" ></div>
 					<div class="cart-branch-section"></div>
 					<div class="cart-totals-section"></div>
@@ -1764,16 +1797,6 @@
 						${this.get_branch_icon()} <span class="add-branch-text">${__("Add Branch")}</span>
 					</div>
 				`);
-          this.$branch_section.find(".add-branch-wrapper").css({
-            "display": "flex",
-            "align-items": "center",
-            "gap": "8px",
-            "border": "2px dashed #ccc",
-            "padding": "10px",
-            "border-radius": "6px",
-            "cursor": "pointer",
-            "font-weight": "bold"
-          });
           this.$branch_section.find(".add-branch-wrapper").hover(
             function() {
               $(this).css("background-color", "#f9f9f9");
@@ -1813,7 +1836,7 @@
 							border: none;
 							border-radius: 5px;
 							cursor: pointer;
-							flex: 1; ">${__("Checkout")}</div>
+							flex: 1; ">${__("Checkout (F1)")}</div>
 				<div class="checkout-btn-held checkout-btn" style="
 							padding: 10px;
 							align-items: center;
@@ -1822,7 +1845,7 @@
 							border: none;
 							border-radius: 5px;
 							cursor: pointer;
-							flex: 1;">${__("Held")}</div>
+							flex: 1;">${__("Held (F2)")}</div>
 				<div class="checkout-btn-order checkout-btn" style="
 				padding: 10px;
 							align-items: center;
@@ -1831,7 +1854,7 @@
 							border: none;
 							border-radius: 5px;
 							cursor: pointer;
-							flex: 1;">${__("Order List")}</div>
+							flex: 1;">${__("Order List (F3)")}</div>
 			</div>	
 			<div class="edit-cart-btn">${__("Edit Cart")}</div>`
       );
@@ -2083,25 +2106,34 @@
         if (!this.discount_field || can_edit_discount)
           this.show_discount_control();
       });
-      this.$component.on("click", ".add-branch-wrapper", function() {
-        const $wrapper = $(this);
-        const branchFieldWrapper = $('<div class="branch-field"></div>');
-        $wrapper.replaceWith(branchFieldWrapper);
-        let branchField = new frappe.ui.form.ControlLink({
-          df: {
-            fieldtype: "Link",
-            options: "Branch",
-            fieldname: "branch",
-            label: "Branch",
-            placeholder: "Select Branch"
-          },
-          parent: branchFieldWrapper,
-          value: "",
-          change: function(value) {
-            console.log("Selected Branch:", value);
-          }
-        });
-        branchField.refresh();
+      const $wrapper = $(".add-branch-wrapper");
+      const posProfileName = me.settings.name;
+      const branchFieldWrapper = $('<div class="branch-field"></div>');
+      $wrapper.replaceWith(branchFieldWrapper);
+      frappe.call({
+        method: "posnext.doc_events.pos_profile.get_pos_profile_branch",
+        args: {
+          pos_profile_name: posProfileName
+        },
+        callback: function(r) {
+          const branch_name = r.message && r.message.branch;
+          console.log(branch_name);
+          let branchField = new frappe.ui.form.ControlLink({
+            df: {
+              fieldtype: "Link",
+              options: "Branch",
+              fieldname: "branch",
+              label: "Branch",
+              placeholder: "Select Branch",
+              default: branch_name,
+              reqd: 1
+            },
+            parent: branchFieldWrapper
+          });
+          branchField.make();
+          branchField.set_value(branch_name);
+          branchField.refresh();
+        }
       });
       frappe.ui.form.on("Sales Invoice", "paid_amount", (frm) => {
         this.update_totals_section(frm);
@@ -2393,19 +2425,29 @@
     update_totals_section(frm) {
       if (!frm)
         frm = this.events.get_frm();
-      this.render_net_total(frm.doc.net_total);
+      frm.cscript.calculate_taxes_and_totals();
+      this.render_net_total(frm.doc.items);
       this.render_total_item_qty(frm.doc.items);
-      const grand_total = cint(frappe.sys_defaults.disable_rounded_total) ? frm.doc.grand_total : frm.doc.rounded_total;
+      let grand_total = cint(frappe.sys_defaults.disable_rounded_total) ? frm.doc.grand_total : frm.doc.rounded_total;
+      if (!frm.doc.items || frm.doc.items.length === 0) {
+        if (Math.abs(grand_total) != 5e-3) {
+          grand_total = 0;
+        }
+      }
       this.render_grand_total(grand_total);
       this.render_taxes(frm.doc.taxes);
     }
-    render_net_total(value) {
+    render_net_total(items) {
       const currency = this.events.get_frm().doc.currency;
+      var total_net_amount = 0;
+      items.map((item) => {
+        total_net_amount = total_net_amount + item.net_amount;
+      });
       this.$totals_section.find(".net-total-container").html(
-        `<div>${__("Net Total")}</div><div>${format_currency(value, currency)}</div>`
+        `<div>${__("Net Total")}</div><div>${format_currency(total_net_amount, currency)}</div>`
       );
       this.$numpad_section.find(".numpad-net-total").html(
-        `<div>${__("Net Total")}: <span>${format_currency(value, currency)}</span></div>`
+        `<div>${__("Net Total")}: <span>${format_currency(total_net_amount, currency)}</span></div>`
       );
     }
     render_total_item_qty(items) {
@@ -2489,10 +2531,14 @@
       if (!me.custom_use_discount_amount && !me.custom_use_discount_percentage) {
         item_html += `<div class="item-name-desc" style="flex: 3.5">`;
       }
-      item_html += `<div class="item-name" style="flex: 4; white-space: normal; word-wrap: break-word; overflow: visible; line-height: 1.2;">
+      item_html += `<div class="your-new-field" style="font-size: 10px; color: #888;">
+					${item_data.item_code}
+				</div>
+				<div class="item-name" style="flex: 4; white-space: normal; word-wrap: break-word; overflow: visible; line-height: 1.2;">
 					${item_data.item_name}
 				</div>
-				${get_description_html()}
+				${get_description_html(item_data)}
+				${get_item_barcode(item_data)}
 			</div>
 			${get_rate_discount_html()}`;
       $item_to_update.html(item_html);
@@ -2767,43 +2813,66 @@
             return html;
           }
         } else {
-          if (item_data.rate && item_data.amount && item_data.rate !== item_data.amount) {
-            return `
-                        <div class="item-qty-rate" style="flex: 4" > 
-                            <div class="item-qty" style="flex: 1"><span>${item_data.qty || 0}</span></div>
-                            <div class="item-qty" style="flex: 1"><span> ${item_data.uom}</span></div>
-							<div class="item-qty" style="flex: 1"><span> ${item_data.batch}</span></div>
-                            <div class="item-rate-amount" style="flex: 1">
-                                <div class="item-rate">${parseFloat(item_data.amount).toFixed(2)}</div>
-                                <div class="item-amount">${parseFloat(item_data.rate).toFixed(2)}</div>
-                            </div>
-                        </div>`;
-          } else {
-            return `
-                        <div class="item-qty-rate" style="flex: 4" >
-                            <div class="item-qty" style="flex: 1" ><span>${item_data.qty || 0}</span></div>
-                            <div class="item-qty" style="flex: 1"><span> ${item_data.uom}</span></div>
-							<div class="item-qty" style="flex: 1"><span> ${item_data.batch}</span></div>
-                            <div class="item-rate-amount" style="flex: 1">
-                                <div class="item-rate">${parseFloat(item_data.rate).toFixed(2)}</div>
-                            </div>
-                        </div>`;
+          let html2 = `<div class="item-qty-rate" style="flex: 4">
+				<div class="item-qty" style="flex: 1"><span>${item_data.qty || 0}</span></div>`;
+          if (me.custom_show_uom_in_cart) {
+            html2 += `<div class="item-qty" style="flex: 1"><span>${item_data.uom || ""}</span></div>`;
           }
+          if (me.show_batch_in_cart) {
+            html2 += `<div class="item-qty" style="flex: 1"><span>${item_data.batch_no || ""}</span></div>`;
+          }
+          if (item_data.rate && item_data.amount && item_data.rate !== item_data.amount) {
+            html2 += `<div class="item-rate-amount" style="flex: 1">
+					<div class="item-rate">${parseFloat(item_data.amount).toFixed(2)}</div>
+					<div class="item-amount">${parseFloat(item_data.rate).toFixed(2)}</div>
+				</div>`;
+          } else {
+            html2 += `<div class="item-rate-amount" style="flex: 1">
+					<div class="item-rate">${parseFloat(item_data.rate).toFixed(2)}</div>
+				</div>`;
+          }
+          html2 += `</div>`;
+          return html2;
         }
       }
-      function get_description_html() {
-        if (item_data.description) {
-          if (item_data.description.indexOf("<div>") != -1) {
+      function get_description_html(item_data2) {
+        const hide_description = me.custom_show_item_discription;
+        if (hide_description) {
+          if (item_data2.description.indexOf("<div>") != -1) {
             try {
-              item_data.description = $(item_data.description).text();
+              item_data2.description = $(item_data2.description).text();
             } catch (error) {
-              item_data.description = item_data.description.replace(/<div>/g, " ").replace(/<\/div>/g, " ").replace(/ +/g, " ");
+              item_data2.description = item_data2.description.replace(/<div>/g, " ").replace(/<\/div>/g, " ").replace(/ +/g, " ");
             }
           }
-          item_data.description = frappe.ellipsis(item_data.description, 45);
-          return `<div class="item-desc">${item_data.description}</div>`;
+          item_data2.description = frappe.ellipsis(item_data2.description, 45);
+          return `<div class="item-desc">${item_data2.description}</div>`;
         }
         return ``;
+      }
+      function get_item_barcode(item_data2) {
+        const show_barcode = me.custom_show_item_barcode;
+        if (!show_barcode) {
+          return "";
+        }
+        const barcode_placeholder_id = `barcode-${item_data2.item_code.replace(/[^a-zA-Z0-9]/g, "-")}`;
+        frappe.call({
+          method: "posnext.posnext.page.posnext.point_of_sale.get_barcodes",
+          args: {
+            item_code: item_data2.item_code
+          },
+          callback: function(response) {
+            if (response.message && response.message.length > 0) {
+              const html = response.message.map((b) => `
+							<div class="item-barcode" style="font-size: 12px; color: #888;">
+								${b.barcode}
+							</div>
+						`).join("");
+              $(`#${barcode_placeholder_id}`).html(html);
+            }
+          }
+        });
+        return `<div id="${barcode_placeholder_id}" class="item-barcodes"></div>`;
       }
       function get_item_image_html() {
         const { image, item_name } = item_data;
@@ -3159,7 +3228,6 @@
             this.update_item_html(item);
           });
         }
-        this.update_totals_section(frm);
       });
     }
     load_invoice() {
@@ -3267,6 +3335,46 @@
       await this.events.save_draft_invoice();
     }
   };
+  document.addEventListener("keydown", function(event) {
+    const activeElement = document.activeElement;
+    const isInputActive = activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA" || activeElement.isContentEditable;
+    if (event.key === "F1" && !isInputActive) {
+      event.preventDefault();
+      const checkoutButton = document.querySelector(".checkout-btn");
+      if (checkoutButton) {
+        checkoutButton.click();
+      } else {
+        console.warn("Checkout button not found!");
+      }
+    }
+    if (event.key === "F2" && !isInputActive) {
+      event.preventDefault();
+      const heldCheckoutButton = document.querySelector(".checkout-btn-held");
+      if (heldCheckoutButton) {
+        heldCheckoutButton.click();
+      } else {
+        console.warn("Held Checkout button not found!");
+      }
+    }
+    if (event.key === "F3" && !isInputActive) {
+      event.preventDefault();
+      const orderCheckoutButton = document.querySelector(".checkout-btn-order");
+      if (orderCheckoutButton) {
+        orderCheckoutButton.click();
+      } else {
+        console.warn("Order Checkout button not found!");
+      }
+    }
+    if (event.key === "F4" && !isInputActive) {
+      event.preventDefault();
+      const searchFieldButton = document.querySelector(".search-field button");
+      if (searchFieldButton) {
+        searchFieldButton.click();
+      } else {
+        console.warn("Search field button not found!");
+      }
+    }
+  });
 
   // ../posnext/posnext/public/js/pos_item_details.js
   frappe.provide("posnext.PointOfSale");
@@ -3699,7 +3807,7 @@
     }
     prepare_dom() {
       this.wrapper.append(
-        `<section class="payment-container">
+        `<section class="payment-container" style="grid-column: span 5 / span 5;">
 				<div class="section-label payment-section">${__("Payment Method")}</div>
 				<div class="payment-modes"></div>
 				<div class="fields-numpad-container">
@@ -4215,7 +4323,6 @@
         doc = this.events.get_frm().doc;
       let branch_value = $('.input-with-feedback[data-fieldname="branch"]').val();
       frappe.model.set_value(cur_frm.doctype, cur_frm.docname, "branch", branch_value);
-      cur_frm.save();
       const paid_amount = doc.paid_amount;
       if (cur_frm.doc.custom_credit_sales) {
         const paid_amount2 = 0;
@@ -4546,25 +4653,37 @@ Return`,
         this.show_summary_placeholder();
       });
       this.$summary_container.on("click", ".send-btn", () => {
-        console.log(this.pos_profile);
-        var field_names = this.pos_profile.custom_whatsapp_field_names.map((x) => this.doc[x.field_names.toString()]);
-        console.log(field_names);
-        console.log(field_names.join(","));
-        var message = "https://wa.me/" + this.doc.customer + "?text=";
-        message += formatString(this.pos_profile.custom_whatsapp_message, field_names);
-        console.log(message);
-        frappe.call({
-          method: "posnext.posnext.page.posnext.point_of_sale.generate_pdf_and_save",
-          args: {
-            docname: this.doc.name,
-            doctype: this.doc.doctype,
-            print_format: this.pos_profile.print_format
-          },
-          freeze: true,
-          freeze_message: "Creating file then send to whatsapp thru link....",
-          callback: function(r) {
-            message += "Please Find your invoice here \n " + window.origin + r.message.file_url;
-            window.open(message);
+        if (!this.pos_profile.custom_notification_message_whatsapp) {
+          frappe.show_alert({
+            message: __("WhatsApp notification is not enabled in POS Profile"),
+            indicator: "orange"
+          });
+          return;
+        }
+        if (!this.doc.customer) {
+          frappe.throw(__("Please select a customer first"));
+          return;
+        }
+        frappe.db.get_value("Customer", this.doc.customer, "mobile_no").then(({ message }) => {
+          if (message.mobile_no) {
+            const mobile_no = message.mobile_no.replace(/[^0-9]/g, "");
+            const whatsapp_message = "https://wa.me/" + mobile_no + "?text=";
+            const print_url = frappe.urllib.get_full_url(
+              "/printview?doctype=" + encodeURIComponent(this.doc.doctype) + "&name=" + encodeURIComponent(this.doc.name) + "&format=" + encodeURIComponent(this.pos_profile.print_format) + "&no_letterhead=0&_lang=" + encodeURIComponent(frappe.boot.lang) + "&trigger_print=1"
+            );
+            const final_message = whatsapp_message + encodeURIComponent("Please find your invoice here \n" + print_url);
+            window.open(final_message);
+          } else {
+            var field_values = this.pos_profile.custom_whatsapp_field_names.map((x) => this.doc[x.field_name]);
+            var message_body = formatString(this.pos_profile.custom_whatsapp_message, field_values);
+            const print_url = frappe.urllib.get_full_url(
+              "/printview?doctype=" + encodeURIComponent(this.doc.doctype) + "&name=" + encodeURIComponent(this.doc.name) + "&format=" + encodeURIComponent(this.pos_profile.print_format) + "&no_letterhead=0&_lang=" + encodeURIComponent(frappe.boot.lang) + "&trigger_print=1"
+            );
+            message_body += "\n\nPlease find your invoice here:\n" + print_url;
+            var encoded_message = encodeURIComponent(message_body);
+            var phone_number = this.doc.customer;
+            var whatsapp_url = "https://wa.me/" + phone_number + "?text=" + encoded_message;
+            window.open(whatsapp_url, "_blank");
           }
         });
       });
@@ -4783,4 +4902,4 @@ Return`,
     }
   };
 })();
-//# sourceMappingURL=posnext.bundle.TN4KQRHJ.js.map
+//# sourceMappingURL=posnext.bundle.YW64UZIB.js.map

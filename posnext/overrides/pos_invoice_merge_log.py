@@ -1,4 +1,5 @@
 import frappe
+import json
 from frappe.utils.scheduler import is_scheduler_inactive
 from frappe.utils.background_jobs import enqueue, is_job_enqueued
 from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import POSInvoiceMergeLog
@@ -8,68 +9,52 @@ from frappe import _
 class PosnextPOSInvoiceMergeLog(POSInvoiceMergeLog):
     def serial_and_batch_bundle_reference_for_pos_invoice(self):
         for d in self.pos_invoices:
-            pos_invoice = frappe.get_doc("Sales Invoice", d.pos_invoice)
+            pos_invoice = frappe.get_doc("POS Invoice", d.pos_invoice)
             for table_name in ["items", "packed_items"]:
                 pos_invoice.set_serial_and_batch_bundle(table_name)
+    
     def on_cancel(self):
-        pos_invoice_docs = [frappe.get_cached_doc("Sales Invoice", d.pos_invoice) for d in self.pos_invoices]
-
+        pos_invoice_docs = [frappe.get_cached_doc("POS Invoice", d.pos_invoice) for d in self.pos_invoices]
         self.update_pos_invoices(pos_invoice_docs)
         self.serial_and_batch_bundle_reference_for_pos_invoice()
         self.cancel_linked_invoices()
+    
     def on_submit(self):
-        pos_invoice_docs = [frappe.get_cached_doc("Sales Invoice", d.pos_invoice) for d in self.pos_invoices]
-
-        returns = [d for d in pos_invoice_docs if d.get("is_return") == 1]
-        sales = [d for d in pos_invoice_docs if d.get("is_return") == 0]
-
-        sales_invoice, credit_note = "", ""
-        if returns:
-            credit_note = self.process_merging_into_credit_note(returns)
-
-        if sales:
-            sales_invoice = self.process_merging_into_sales_invoice(sales)
-
-        self.save()  # save consolidated_sales_invoice & consolidated_credit_note ref in merge log
-        self.update_pos_invoices(pos_invoice_docs, sales_invoice, credit_note)
+        # Set serial and batch bundle references first
+        self.serial_and_batch_bundle_reference_for_pos_invoice()
+        # Then call parent's on_submit which has all the consolidation logic
+        super().on_submit()
+    
     def validate_pos_invoice_status(self):
         for d in self.pos_invoices:
             status, docstatus, is_return, return_against = frappe.db.get_value(
-                "Sales Invoice", d.pos_invoice, ["status", "docstatus", "is_return", "return_against"]
+                "POS Invoice", d.pos_invoice, ["status", "docstatus", "is_return", "return_against"]
             )
 
             bold_pos_invoice = frappe.bold(d.pos_invoice)
             bold_status = frappe.bold(status)
             if docstatus != 1:
                 frappe.throw(
-                    _("Row #{}: Sales Invoice {} is not submitted yet").format(d.idx, bold_pos_invoice)
+                    _("Row #{}: POS Invoice {} is not submitted yet").format(d.idx, bold_pos_invoice)
                 )
             if status == "Consolidated":
                 frappe.throw(
-                    _("Row #{}: Sales Invoice {} has been {}").format(d.idx, bold_pos_invoice, bold_status)
+                    _("Row #{}: POS Invoice {} has been {}").format(d.idx, bold_pos_invoice, bold_status)
                 )
-            if (
-                            is_return
-                        and return_against
-                    and return_against not in [d.pos_invoice for d in self.pos_invoices]
-            ):
+            if (is_return and return_against and return_against not in [d.pos_invoice for d in self.pos_invoices]):
                 bold_return_against = frappe.bold(return_against)
-                return_against_status = frappe.db.get_value("Sales Invoice", return_against, "status")
+                return_against_status = frappe.db.get_value("POS Invoice", return_against, "status")
                 if return_against_status != "Consolidated":
-                    # if return entry is not getting merged in the current pos closing and if it is not consolidated
                     bold_unconsolidated = frappe.bold("not Consolidated")
                     msg = _("Row #{}: Original Invoice {} of return invoice {} is {}.").format(
                         d.idx, bold_return_against, bold_pos_invoice, bold_unconsolidated
                     )
                     msg += " "
-                    msg += _(
-                        "Original invoice should be consolidated before or along with the return invoice."
-                    )
+                    msg += _("Original invoice should be consolidated before or along with the return invoice.")
                     msg += "<br><br>"
-                    msg += _("You can add original invoice {} manually to proceed.").format(
-                        bold_return_against
-                    )
+                    msg += _("You can add original invoice {} manually to proceed.").format(bold_return_against)
                     frappe.throw(msg)
+
 
 def split_invoices(invoices):
     """
@@ -78,22 +63,10 @@ def split_invoices(invoices):
     If a serial no is sold and later it is returned
     then split the invoices such that the selling entry is merged first and then the return entry
     """
-    # Input
-    # invoices = [
-    # 	{'pos_invoice': 'Invoice with SR#1 & SR#2', 'is_return': 0},
-    # 	{'pos_invoice': 'Invoice with SR#1', 'is_return': 1},
-    # 	{'pos_invoice': 'Invoice with SR#2', 'is_return': 0}
-    # ]
-    # Output
-    # _invoices = [
-    # 	[{'pos_invoice': 'Invoice with SR#1 & SR#2', 'is_return': 0}],
-    # 	[{'pos_invoice': 'Invoice with SR#1', 'is_return': 1}, {'pos_invoice': 'Invoice with SR#2', 'is_return': 0}],
-    # ]
-
     _invoices = []
     special_invoices = []
     pos_return_docs = [
-        frappe.get_cached_doc("Sales Invoice", d.pos_invoice)
+        frappe.get_cached_doc("POS Invoice", d.pos_invoice)
         for d in invoices
         if d.is_return and d.return_against
     ]
@@ -123,6 +96,7 @@ def split_invoices(invoices):
 
     return _invoices
 
+
 def consolidate_pos_invoices(pos_invoices=None, closing_entry=None):
     invoices = pos_invoices or (closing_entry and closing_entry.get("pos_transactions"))
     if frappe.flags.in_test and not invoices:
@@ -136,6 +110,7 @@ def consolidate_pos_invoices(pos_invoices=None, closing_entry=None):
     else:
         create_merge_logs(invoice_by_customer, closing_entry)
 
+
 def get_all_unconsolidated_invoices():
     filters = {
         "consolidated_invoice": ["in", ["", None]],
@@ -143,7 +118,7 @@ def get_all_unconsolidated_invoices():
         "docstatus": 1,
     }
     pos_invoices = frappe.db.get_all(
-        "Sales Invoice",
+        "POS Invoice",
         filters=filters,
         fields=[
             "name as pos_invoice",
@@ -157,8 +132,8 @@ def get_all_unconsolidated_invoices():
 
     return pos_invoices
 
+
 def get_invoice_customer_map(pos_invoices):
-    # pos_invoice_customer_map = { 'Customer 1': [{}, {}, {}], 'Customer 2' : [{}] }
     pos_invoice_customer_map = {}
     for invoice in pos_invoices:
         customer = invoice.get("customer")
@@ -178,6 +153,8 @@ def unconsolidate_pos_invoices(closing_entry):
         enqueue_job(cancel_merge_logs, merge_logs=merge_logs, closing_entry=closing_entry)
     else:
         cancel_merge_logs(merge_logs, closing_entry)
+
+
 def cancel_merge_logs(merge_logs, closing_entry=None):
     try:
         for log in merge_logs:
@@ -204,6 +181,7 @@ def cancel_merge_logs(merge_logs, closing_entry=None):
         frappe.db.commit()
         frappe.publish_realtime("closing_process_complete", user=frappe.session.user)
 
+
 def create_merge_logs(invoice_by_customer, closing_entry=None):
     try:
         for customer, invoices in invoice_by_customer.items():
@@ -220,6 +198,7 @@ def create_merge_logs(invoice_by_customer, closing_entry=None):
                 merge_log.set("pos_invoices", _invoices)
                 merge_log.save(ignore_permissions=True)
                 merge_log.submit()
+                
         if closing_entry:
             closing_entry.set_status(update=True, status="Submitted")
             closing_entry.db_set("error_message", "")
@@ -240,6 +219,8 @@ def create_merge_logs(invoice_by_customer, closing_entry=None):
     finally:
         frappe.db.commit()
         frappe.publish_realtime("closing_process_complete", user=frappe.session.user)
+
+
 def enqueue_job(job, **kwargs):
     check_scheduler_status()
 
@@ -264,13 +245,14 @@ def enqueue_job(job, **kwargs):
 
         frappe.msgprint(msg, alert=1)
 
+
 def check_scheduler_status():
     if is_scheduler_inactive() and not frappe.flags.in_test:
         frappe.throw(_("Scheduler is inactive. Cannot enqueue job."), title=_("Scheduler Inactive"))
 
 
 def get_error_message(message) -> str:
-	try:
-		return message["message"]
-	except Exception:
-		return str(message)
+    try:
+        return message["message"]
+    except Exception:
+        return str(message)
