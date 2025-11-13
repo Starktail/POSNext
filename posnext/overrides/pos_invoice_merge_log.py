@@ -248,7 +248,7 @@ def cancel_merge_logs(merge_logs, closing_entry=None):
         raise
 
     finally:
-        frappe.db.commit()
+        # frappe.db.commit()
         frappe.publish_realtime("closing_process_complete", user=frappe.session.user)
 
 
@@ -292,7 +292,7 @@ def create_merge_logs(invoice_by_customer, closing_entry=None):
         raise
 
     finally:
-        frappe.db.commit()
+        # frappe.db.commit()
         frappe.publish_realtime("closing_process_complete", user=frappe.session.user)
 
 

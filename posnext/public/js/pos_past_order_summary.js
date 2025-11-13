@@ -89,7 +89,7 @@ posnext.PointOfSale.PastOrderSummary = class {
     const { status } = doc;
     let indicator_color = "";
 
-    in_list(["Paid", "Consolidated"], status) && (indicator_color = "green");
+    ["Paid", "Consolidated"].includes(status) && (indicator_color = "green");
     status === "Draft" && (indicator_color = "red");
     status === "Return" && (indicator_color = "grey");
 

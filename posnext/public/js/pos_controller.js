@@ -356,7 +356,7 @@ posnext.PointOfSale.Controller = class {
           this.item_details.current_item = item;
           const item_row = frappe.model.get_doc(item.doctype, item.name);
           if (field === "qty" && this.frm.doc.is_return && value >= 0) {
-            frappe.throw("Qty must be negative for return document");
+            frappe.throw(__("Qty must be negative for return document"));
           }
           if (item_row && item_row[field] != value) {
             const args = {
@@ -411,7 +411,7 @@ posnext.PointOfSale.Controller = class {
         form_updated: (item, field, value) => {
           const item_row = frappe.model.get_doc(item.doctype, item.name);
           if (field === "qty" && this.frm.doc.is_return && value >= 0) {
-            frappe.throw("Qty must be negative for return document");
+            frappe.throw(__("Qty must be negative for return document"));
           }
           if (item_row && item_row[field] != value) {
             const args = {
@@ -842,19 +842,20 @@ posnext.PointOfSale.Controller = class {
       // then "item_code, batch_no, uom, rate" will help in getting the exact item
       // to increase the qty by one
       for (var i = 0; i < cur_frm.doc.items.length; i += 1) {
+        // nosemgrep Overrides erpnext code
         const has_batch_no = batch_no !== "null" && batch_no !== null;
         const batch_no_check = this.settings
           .custom_allow_add_new_items_on_new_line
-          ? has_batch_no && cur_frm.doc.items[i].batch_no === batch_no
+          ? has_batch_no && cur_frm.doc.items[i].batch_no === batch_no // nosemgrep Overrides erpnext code
           : true;
 
         if (
-          cur_frm.doc.items[i].item_code === item_code &&
-          cur_frm.doc.items[i].uom === uom &&
-          parseFloat(cur_frm.doc.items[i].rate) === parseFloat(rate) &&
+          cur_frm.doc.items[i].item_code === item_code && // nosemgrep Overrides erpnext code
+          cur_frm.doc.items[i].uom === uom && // nosemgrep Overrides erpnext code
+          parseFloat(cur_frm.doc.items[i].rate) === parseFloat(rate) && // nosemgrep Overrides erpnext code
           batch_no_check
         ) {
-          item_row = cur_frm.doc.items[i];
+          item_row = cur_frm.doc.items[i]; // nosemgrep Overrides erpnext code
           break;
         }
       }

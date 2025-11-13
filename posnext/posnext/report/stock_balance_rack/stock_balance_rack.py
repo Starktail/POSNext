@@ -134,7 +134,9 @@ class StockBalanceReport:
                     "latest_age": 0,
                 }
                 if opening_fifo_queue:
-                    fifo_queue = sorted(filter(_func, opening_fifo_queue), key=_func)
+                    fifo_queue = sorted(
+                        [x for x in opening_fifo_queue if _func(x)], key=_func
+                    )
                     if not fifo_queue:
                         continue
 

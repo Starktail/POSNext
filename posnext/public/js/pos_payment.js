@@ -116,6 +116,7 @@ posnext.PointOfSale.Payment = class {
           if (this.df.fieldname === "sales_person") {
             frm.clear_table("sales_team");
             cur_frm.add_child("sales_team", {
+              // nosemgrep Overrides erpnext code
               sales_person: this.get_value(),
               allocated_percentage: 100,
             });
@@ -315,7 +316,8 @@ posnext.PointOfSale.Payment = class {
       const doc = this.events.get_frm().doc;
       let paid_amount = doc.paid_amount;
       if (cur_frm.doc.custom_credit_sales && this.custom_show_credit_sales) {
-        cur_frm.clear_table("payments");
+        // nosemgrep Overrides erpnext code
+        cur_frm.clear_table("payments"); // nosemgrep Overrides erpnext code
         paid_amount = 0;
       }
 
@@ -391,7 +393,7 @@ posnext.PointOfSale.Payment = class {
             format_currency(amount, doc.currency, 0),
           ]);
           this.events.submit_invoice();
-          cur_frm.reload_doc();
+          cur_frm.reload_doc(); // nosemgrep Overrides erpnext code
         } else {
           message = __(
             "Payment of {0} received successfully. Waiting for other requests to complete...",
@@ -755,8 +757,8 @@ posnext.PointOfSale.Payment = class {
     if (!doc) doc = this.events.get_frm().doc;
     let branch_value = $('.input-with-feedback[data-fieldname="branch"]').val();
     frappe.model.set_value(
-      cur_frm.doctype,
-      cur_frm.docname,
+      cur_frm.doctype, // nosemgrep Overrides erpnext code
+      cur_frm.docname, // nosemgrep Overrides erpnext code
       "branch",
       branch_value,
     );
@@ -765,6 +767,7 @@ posnext.PointOfSale.Payment = class {
     const paid_amount = doc.paid_amount;
 
     if (cur_frm.doc.custom_credit_sales) {
+      // nosemgrep Overrides erpnext code
       const paid_amount = 0;
     }
     const grand_total = cint(frappe.sys_defaults.disable_rounded_total)

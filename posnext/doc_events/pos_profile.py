@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 
 
 def validate_pf(doc, method):
@@ -10,7 +11,7 @@ def validate_pf(doc, method):
 @frappe.whitelist()
 def get_pos_profile_branch(pos_profile_name):
     if not pos_profile_name:
-        frappe.throw("POS Profile name is required.")
+        frappe.throw(_("POS Profile name is required."))
 
     branch = frappe.db.get_value("POS Profile", pos_profile_name, "branch")
     return {"branch": branch}

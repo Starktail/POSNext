@@ -57,10 +57,10 @@ def search_by_term(
 
     if barcode:
         barcode_info = next(
-            filter(lambda x: x.barcode == barcode, item_doc.get("barcodes", [])), None
+            (x for x in item_doc.get("barcodes", []) if x.barcode == barcode), None
         )
         if barcode_info and barcode_info.uom:
-            uom = next(filter(lambda x: x.uom == barcode_info.uom, item_doc.uoms), {})
+            uom = next((x for x in item_doc.uoms if x.uom == barcode_info.uom), {})
             item.update(
                 {
                     "uom": barcode_info.uom,
@@ -261,7 +261,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             result.append(item)
 
         for price in item_price:
-            uom = next(filter(lambda x: x.uom == price.uom, uoms), {})
+            uom = next((x for x in uoms if x.uom == price.uom), {})
 
             if price.uom != item.stock_uom and uom and uom.conversion_factor:
                 item.actual_qty = item.actual_qty // uom.conversion_factor
@@ -501,7 +501,7 @@ def create_customer(customer):
         obj = {"doctype": "Customer", "customer_name": customer}
 
         frappe.get_doc(obj).insert()
-        frappe.db.commit()
+        # frappe.db.commit()
 
 
 @frappe.whitelist()

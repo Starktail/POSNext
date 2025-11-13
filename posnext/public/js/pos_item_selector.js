@@ -749,7 +749,7 @@ posnext.PointOfSale.ItemSelector = class {
     if (this.custom_show_last_incoming_rate || this.custom_show_incoming_rate) {
       this.total_incoming_rate = frappe.ui.form.make_control({
         df: {
-          label: __(""),
+          label: "",
           fieldtype: "Currency",
           read_only: 1,
           placeholder: __("Total Incoming Rate"),

@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.desk.reportview import get_filters_cond, get_match_cond
 from frappe.utils import unique
 
@@ -63,7 +64,7 @@ def get_fields(doctype, fields=None):
 @frappe.whitelist()
 def get_ledger_balance(customer):
     if not customer:
-        frappe.throw("Customer ID is required.")
+        frappe.throw(_("Customer ID is required."))
 
     # Fetch receivable balance for the customer
     balance = frappe.db.sql(
