@@ -928,7 +928,7 @@
 						<!--<div class="item-code-search-field" style="grid-column: span 2 / span 2"></div>-->
 						<div class="item-group-field" style="grid-column: span 2 / span 2"></div>
 						<div class="invoice-posting-date" style="margin-left: 10px;grid-column: span 2 / span 2"></div>` + tir + `
-						
+
 					</div>
 					<div class="items-container"></div>
 				</section>
@@ -951,7 +951,7 @@
 						<!--<div class="item-code-search-field" style="grid-column: span 2 / span 2"></div>-->
 						<div class="item-group-field" style="grid-column: span 2 / span 2"></div>
 						<div class="invoice-posting-date" style="margin-left: 10px;grid-column: span 2 / span 2"></div>` + tir + `
-						
+
 					</div>
 					<div class="cart-container" ></div>
 				</section>`
@@ -1154,10 +1154,10 @@
       const me = this;
       const currency = me.events.get_frm().currency || me.currency;
       this.$cart_items_wrapper.append(
-        `<div class="cart-item-wrapper item-wrapper" 
-			data-item-code="${escape(item_data.item_code)}" 
+        `<div class="cart-item-wrapper item-wrapper"
+			data-item-code="${escape(item_data.item_code)}"
 			data-serial-no="${escape(item_data.serial_no)}"
-			data-batch-no="${escape(item_data.batch_no)}" 
+			data-batch-no="${escape(item_data.batch_no)}"
 			data-uom="${escape(item_data.uom)}"
 			data-rate="${escape(item_data.price_list_rate || 0)}"
 			data-valuation-rate="${escape(item_data.valuation_rate || item_data.custom_valuation_rate)}"
@@ -1171,7 +1171,7 @@
       $item_to_update.html(
         `${get_item_image_html()}
 			${get_item_name()}
-			
+
 				<div style="overflow-wrap: break-word;overflow:hidden;white-space: normal;font-weight: 700;margin-right: 10px">
 					${item_data.item_name}
 				</div>
@@ -1249,7 +1249,7 @@
 						</div>
 						<div class="item-qty" style="flex: 1;display:block;text-align: center"><span> ${item_data.actual_qty || 0}</span></div>
 						<div class="item-batch" style="flex: 1;display:block;text-align: center"><span> ${item_data.batch_no || 0}</span></div>
-						
+
 					</div>`;
         } else {
           return `
@@ -1259,7 +1259,7 @@
 						</div>
 						<div class="item-qty" style="flex: 1;display:block;text-align: center"><span> ${item_data.actual_qty || 0}</span></div>
 						<div class="item-batch" style="flex: 1;display:block;text-align: center"><span> ${item_data.batch_no || 0}</span></div>
-						
+
 					</div>`;
         }
       }
@@ -1832,7 +1832,7 @@
 							border-radius: 5px;
 							cursor: pointer;
 							flex: 1;">${__("Order List")}</div>
-			</div>	
+			</div>
 			<div class="edit-cart-btn">${__("Edit Cart")}</div>`
       );
       this.$add_discount_elem = this.$component.find(".add-discount-wrapper");
@@ -1966,7 +1966,7 @@
 							max-width: 350px;
 							margin: 0 auto;
 						}
-						
+
 						.numpad-button {
 							padding: 15px;
 							font-size: 18px;
@@ -1976,7 +1976,7 @@
 							border-radius: 5px;
 							text-align: center;
 						}
-						
+
 						.numpad-button:hover {
 							background-color: #ddd;
 						}
@@ -2769,7 +2769,7 @@
         } else {
           if (item_data.rate && item_data.amount && item_data.rate !== item_data.amount) {
             return `
-                        <div class="item-qty-rate" style="flex: 4" > 
+                        <div class="item-qty-rate" style="flex: 4" >
                             <div class="item-qty" style="flex: 1"><span>${item_data.qty || 0}</span></div>
                             <div class="item-qty" style="flex: 1"><span> ${item_data.uom}</span></div>
 							<div class="item-qty" style="flex: 1"><span> ${item_data.batch}</span></div>

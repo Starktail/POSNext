@@ -26,6 +26,10 @@
 	"root": true,
 	"globals": {
 		"frappe": true,
+		"erpnext": true,
+		"posnext": true,
+		"onScan": true,
+		"cur_pos": true,
 		"Vue": true,
 		"SetVueGlobals": true,
 		"__": true,
