@@ -841,8 +841,8 @@ posnext.PointOfSale.Controller = class {
       // if item is clicked twice from item selector
       // then "item_code, batch_no, uom, rate" will help in getting the exact item
       // to increase the qty by one
-      for (var i = 0; i < cur_frm.doc.items.length; i += 1) {
-        // nosemgrep Overrides erpnext code
+      // prettier-ignore
+      for (var i = 0; i < cur_frm.doc.items.length; i += 1) { // nosemgrep
         const has_batch_no = batch_no !== "null" && batch_no !== null;
         const batch_no_check = this.settings
           .custom_allow_add_new_items_on_new_line

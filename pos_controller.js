@@ -862,8 +862,8 @@ posnext.PointOfSale.Controller = class {
         .custom_allow_add_new_items_on_new_line
         ? has_batch_no && cur_frm.doc.items[i].batch_no === batch_no // nosemgrep Overrides erpnext code
         : true;
-      for (var i = 0; i < cur_frm.doc.items.length; i += 1) {
-        // nosemgrep Overrides erpnext code
+      // prettier-ignore
+      for (var i = 0; i < cur_frm.doc.items.length; i += 1) { // nosemgrep
         if (
           cur_frm.doc.items[i].item_code === item_code && // nosemgrep Overrides erpnext code
           cur_frm.doc.items[i].uom === uom && // nosemgrep Overrides erpnext code

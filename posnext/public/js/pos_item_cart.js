@@ -331,8 +331,8 @@ posnext.PointOfSale.ItemCart = class {
       if ($(this).attr("style").indexOf("--blue-500") == -1) return;
       if ($(this).attr("class").indexOf("checkout-btn-held") !== -1) return;
       if ($(this).attr("class").indexOf("checkout-btn-order") !== -1) return;
-      if (!cur_frm.doc.customer && me.mobile_number_based_customer) {
-        // nosemgrep Overrides erpnext code
+      // prettier-ignore
+      if (!cur_frm.doc.customer && me.mobile_number_based_customer) { // nosemgrep
         let d = new frappe.ui.Dialog({
           title: "Enter Mobile Number",
           fields: [
@@ -474,7 +474,7 @@ posnext.PointOfSale.ItemCart = class {
         });
       } else {
         if (!cur_frm.doc.customer && !me.mobile_number_based_customer) {
-          // nosemgrep Overrides erpnext code
+          // nosemgrep
           frappe.throw(__("Please Select a customer and add items first"));
         }
         await me.events.checkout();
@@ -487,8 +487,8 @@ posnext.PointOfSale.ItemCart = class {
       if ($(this).attr("style").indexOf("--blue-500") == -1) return;
 
       // Check for empty cart
-      if (!cur_frm.doc.items || cur_frm.doc.items.length === 0) {
-        // nosemgrep Overrides erpnext code
+      // prettier-ignore
+      if (!cur_frm.doc.items || cur_frm.doc.items.length === 0) { // nosemgrep
         frappe.show_alert({
           message: __("Please add items to cart before holding."),
           indicator: "red",
@@ -497,8 +497,8 @@ posnext.PointOfSale.ItemCart = class {
         return;
       }
 
-      if (!cur_frm.doc.customer && me.mobile_number_based_customer) {
-        // nosemgrep Overrides erpnext code
+      // prettier-ignore
+      if (!cur_frm.doc.customer && me.mobile_number_based_customer) { // nosemgrep
         let d = new frappe.ui.Dialog({
           title: "Enter Mobile Number",
           fields: [

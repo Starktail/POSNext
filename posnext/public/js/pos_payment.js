@@ -115,8 +115,8 @@ posnext.PointOfSale.Payment = class {
         onchange: function () {
           if (this.df.fieldname === "sales_person") {
             frm.clear_table("sales_team");
-            cur_frm.add_child("sales_team", {
-              // nosemgrep Overrides erpnext code
+            // prettier-ignore
+            cur_frm.add_child("sales_team", { // nosemgrep
               sales_person: this.get_value(),
               allocated_percentage: 100,
             });
@@ -316,7 +316,7 @@ posnext.PointOfSale.Payment = class {
       const doc = this.events.get_frm().doc;
       let paid_amount = doc.paid_amount;
       if (cur_frm.doc.custom_credit_sales && this.custom_show_credit_sales) {
-        // nosemgrep Overrides erpnext code
+        // nosemgrep
         cur_frm.clear_table("payments"); // nosemgrep Overrides erpnext code
         paid_amount = 0;
       }
@@ -766,8 +766,8 @@ posnext.PointOfSale.Payment = class {
     // doc.paid_amount = doc.grand_total
     const paid_amount = doc.paid_amount;
 
-    if (cur_frm.doc.custom_credit_sales) {
-      // nosemgrep Overrides erpnext code
+    // prettier-ignore
+    if (cur_frm.doc.custom_credit_sales) { // nosemgrep
       const paid_amount = 0;
     }
     const grand_total = cint(frappe.sys_defaults.disable_rounded_total)
