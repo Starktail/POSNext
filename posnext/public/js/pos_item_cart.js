@@ -473,8 +473,8 @@ posnext.PointOfSale.ItemCart = class {
           d.set_value("mobile_number", current_value.slice(0, -1));
         });
       } else {
-        if (!cur_frm.doc.customer && !me.mobile_number_based_customer) {
-          // nosemgrep
+      // prettier-ignore
+        if (!cur_frm.doc.customer && !me.mobile_number_based_customer) { // nosemgrep
           frappe.throw(__("Please Select a customer and add items first"));
         }
         await me.events.checkout();

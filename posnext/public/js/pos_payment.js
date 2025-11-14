@@ -315,8 +315,8 @@ posnext.PointOfSale.Payment = class {
     this.$component.on("click", ".submit-order-btn", () => {
       const doc = this.events.get_frm().doc;
       let paid_amount = doc.paid_amount;
-      if (cur_frm.doc.custom_credit_sales && this.custom_show_credit_sales) {
-        // nosemgrep
+      // prettier-ignore
+      if (cur_frm.doc.custom_credit_sales && this.custom_show_credit_sales) { // nosemgrep
         cur_frm.clear_table("payments"); // nosemgrep Overrides erpnext code
         paid_amount = 0;
       }
