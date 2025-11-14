@@ -39,10 +39,12 @@ app_include_js = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"POS Profile" : "public/js/pos_profile.js",
-"Sales Invoice" : "public/js/sales_invoice.js"}
+doctype_js = {
+    "POS Profile": "public/js/pos_profile.js",
+    "Sales Invoice": "public/js/sales_invoice.js",
+}
 
-doctype_list_js = {"Item" : "public/js/item_list.js"}
+doctype_list_js = {"Item": "public/js/item_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -136,20 +138,16 @@ doctype_list_js = {"Item" : "public/js/item_list.js"}
 # Hook on document methods and events
 
 doc_events = {
-	"Item": {
-		"validate": "posnext.doc_events.item.validate_item"
-	},
-	"Sales Invoice": {
-		"validate": [
-			"posnext.doc_events.sales_invoice.validate_si",
-		],
-		"on_submit": [
-			"posnext.doc_events.sales_invoice.create_delivery_note",
-		]
-	},
-	"POS Profile": {
-		"validate": "posnext.doc_events.pos_profile.validate_pf"
-	}
+    "Item": {"validate": "posnext.doc_events.item.validate_item"},
+    "Sales Invoice": {
+        "validate": [
+            "posnext.doc_events.sales_invoice.validate_si",
+        ],
+        "on_submit": [
+            "posnext.doc_events.sales_invoice.create_delivery_note",
+        ],
+    },
+    "POS Profile": {"validate": "posnext.doc_events.pos_profile.validate_pf"},
 }
 
 # Scheduled Tasks
@@ -176,14 +174,14 @@ doc_events = {
 # Testing
 # -------
 
-# before_tests = "posnext.install.before_tests"
+before_tests = "posnext.utils.before_tests"
 
 # Overriding Methods
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry.get_pos_invoices": "posnext.overrides.pos_closing_entry.get_pos_invoices",
-	"erpnext.accounts.doctype.pos_invoice.pos_invoice.get_stock_availability": "posnext.overrides.pos_invoice.get_stock_availability"
+    "erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry.get_pos_invoices": "posnext.overrides.pos_closing_entry.get_pos_invoices",
+    "erpnext.accounts.doctype.pos_invoice.pos_invoice.get_stock_availability": "posnext.overrides.pos_invoice.get_stock_availability",
 }
 #
 # each overriding function accepts a `data` argument;
@@ -250,31 +248,22 @@ override_whitelisted_methods = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 override_doctype_class = {
-	"Sales Invoice": "posnext.overrides.sales_invoice.PosnextSalesInvoice",
-	"POS Closing Entry": "posnext.overrides.pos_closing_entry.PosnextPOSClosingEntry",
-	"POS Invoice Merge Log": "posnext.overrides.pos_invoice_merge_log.PosnextPOSInvoiceMergeLog",
+    "Sales Invoice": "posnext.overrides.sales_invoice.PosnextSalesInvoice",
+    "POS Closing Entry": "posnext.overrides.pos_closing_entry.PosnextPOSClosingEntry",
+    "POS Invoice Merge Log": "posnext.overrides.pos_invoice_merge_log.PosnextPOSInvoiceMergeLog",
 }
 
 
 fixtures = [
-	{
-		"doctype":"Custom Field",
-		"filters": [
-			[
-				"module",
-				"in",
-				["Posnext"]
-            ]
-        ]
-	},
-	{
-		"doctype":"Property Setter",
-		"filters": [
-			[
-				"module",
-				"in",
-				["Posnext"]
-            ]
-        ]
-	},
+    {"doctype": "Custom Field", "filters": [["module", "in", ["Posnext"]]]},
+    {"doctype": "Property Setter", "filters": [["module", "in", ["Posnext"]]]},
+]
+
+standard_help_items = [
+    {
+        "item_label": "POSNext Documentation",
+        "item_type": "Route",
+        "route": "/posnext_introduction",
+        "is_standard": 1,
+    },
 ]

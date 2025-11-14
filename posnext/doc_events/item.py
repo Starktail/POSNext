@@ -1,10 +1,11 @@
-import frappe
-from frappe import _ 
-from frappe.utils.pdf import get_pdf
-from frappe.www.printview import get_context 
 import json
+
+import frappe
+from frappe import _
 from frappe.utils import now
 from frappe.utils.file_manager import save_file
+from frappe.utils.pdf import get_pdf
+
 
 def validate_item(doc, method):
     for x in doc.custom_items:
@@ -18,31 +19,27 @@ def get_product_bundle_with_items(item_code):
     bundle = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
 
     if not bundle:
-        return None  
+        return None
 
     bundle_doc = frappe.get_doc("Product Bundle", bundle)
 
     bundle_items = []
     for item in bundle_doc.items:
-        bundle_items.append({
-            "item_code": item.item_code,
-            "qty": item.qty,
-            "uom": item.uom
-        })
+        bundle_items.append(
+            {"item_code": item.item_code, "qty": item.qty, "uom": item.uom}
+        )
 
     return {
         "name": bundle_doc.name,
         "new_item_code": bundle_doc.new_item_code,
-        "items": bundle_items
+        "items": bundle_items,
     }
 
 
 @frappe.whitelist()
-def print_barcodes(item_codes): 
+def print_barcodes(item_codes):
     if isinstance(item_codes, str):
-   
         item_codes = json.loads(item_codes)
-      
 
     items_with_barcodes = [
         frappe.get_doc("Item", code)
@@ -60,8 +57,8 @@ def print_barcodes(item_codes):
         url = f"/printview?doctype=Item&name={item_name}&format={print_format}&no_letterhead=1"
         return {"url": url}
 
-    html_content = ''.join(
-        f'<div>{frappe.get_print("Item", item.name, print_format, doc=item)}</div>'
+    html_content = "".join(
+        f"<div>{frappe.get_print('Item', item.name, print_format, doc=item)}</div>"
         for item in items_with_barcodes
     )
 
@@ -73,11 +70,11 @@ def print_barcodes(item_codes):
         content=pdf_data,
         dt="Item",
         dn=items_with_barcodes[0].name,
-        is_private=0
+        is_private=0,
     )
 
     return {
         "url": file_doc.file_url,
         "message": _(f"Generated barcodes for {len(items_with_barcodes)} items."),
-        "is_pdf": True
+        "is_pdf": True,
     }
