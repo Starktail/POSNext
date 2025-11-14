@@ -405,7 +405,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_customer = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr1,
             fields=fields,
             page_length=limit,
@@ -418,7 +418,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_name = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr2,
             fields=fields,
             page_length=limit,
@@ -430,7 +430,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         if pos_profile:
             fltr = {"status": status, "pos_profile": pos_profile}
         invoice_list = frappe.db.get_all(
-            "Sales Invoice", filters=fltr, fields=fields, page_length=limit
+            "POS Invoice", filters=fltr, fields=fields, page_length=limit
         )
 
     return invoice_list
@@ -527,7 +527,7 @@ def generate_pdf_and_save(docname, doctype, print_format=None):
 def make_sales_return(source_name, target_doc=None):
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
-    return make_return_doc("Sales Invoice", source_name, target_doc)
+    return make_return_doc("POS Invoice", source_name, target_doc)
 
 
 @frappe.whitelist()
@@ -536,10 +536,11 @@ def get_lcr(customer=None, item_code=None):
     if customer and item_code:
         d = frappe.db.sql(
             f"""
-		SELECT item.rate FROM `tabSales Invoice Item` item INNER JOIN `tabSales Invoice` SI ON SI.name=item.parent
-		WHERE SI.customer='{customer}' AND item.item_code='{item_code}'
-		ORDER BY SI.creation desc
-		LIMIT 1
+		SELECT item.rate FROM `tabPOS Invoice Item` item
+		INNER JOIN `tabPOS Invoice` PI ON PI.name=item.parent
+		WHERE PI.customer='{customer}' AND item.item_code='{item_code}'
+		AND PI.docstatus = 1
+		ORDER BY PI.creation desc
 		""",
             as_dict=True,
         )

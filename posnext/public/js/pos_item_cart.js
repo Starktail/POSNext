@@ -79,40 +79,74 @@ posnext.PointOfSale.ItemCart = class {
   init_cart_components() {
     var html = `<div class="cart-container">
 				<div class="abs-cart-container">
-					<div class="cart-label">${__("Item Cart")}</div>
-					<div class="cart-header">
-						<div class="name-header" style="flex:3">${__("Item")}</div>
-						<div class="qty-header" style="flex: 1">${__("Qty")}</div>
-						`;
+					<div class="cart-label">${__("Item Cart")}</div><div class="cart-header">`;
+
+    // Calculate flex for item name based on discount settings
+    let item_name_flex = 3.5;
+    if (
+      this.custom_use_discount_percentage &&
+      !this.custom_use_discount_amount
+    ) {
+      item_name_flex = 2.8;
+    }
+    if (
+      this.custom_use_discount_amount &&
+      !this.custom_use_discount_percentage
+    ) {
+      item_name_flex = 2.8;
+    }
+    if (
+      this.custom_use_discount_amount &&
+      this.custom_use_discount_percentage
+    ) {
+      item_name_flex = 2.5;
+    }
+
+    // Item name header
+    html += `<div class="name-header" style="flex:${item_name_flex}">${__(
+      "Item",
+    )}</div>`;
+
+    // Wrap remaining headers in container matching item-qty-rate flex
+    const header_container_flex = this.custom_edit_rate ? 6 : 4;
+    html += `<div style="display: flex; flex: ${header_container_flex}">`;
+
+    // All other headers inside wrapper
+    html += `<div class="qty-header" style="flex: 1">${__("Qty")}</div>`;
     if (this.custom_show_uom_in_cart) {
       html += `<div class="uom-header" style="flex: 1">${__("UOM")}</div>`;
     }
+
     if (this.show_batch_in_cart) {
       html += `<div class="batch-header" style="flex: 1">${__("Batch")}</div>`;
     }
+
     if (this.custom_edit_rate) {
       html += `<div class="rate-header" style="flex: 1">${__("Rate")}</div>`;
     }
+
     if (this.custom_use_discount_percentage) {
       html += `<div class="discount-perc-header" style="flex: 1">${__(
         "Disc%",
       )}</div>`;
     }
+
     if (this.custom_use_discount_amount) {
       html += `<div class="discount-amount-header" style="flex: 1">${__(
         "Disc",
       )}</div>`;
     }
+
     if (this.custom_show_incoming_rate) {
       html += `<div class="incoming-rate-header" style="flex: 1">${__(
         "Inc.Rate",
       )}</div>`;
     }
+
     if (this.custom_show_logical_rack_in_cart) {
-      html += `<div class="incoming-rate-header" style="flex: 1">${__(
-        "Rack",
-      )}</div>`;
+      html += `<div class="rack-header" style="flex: 1">${__("Rack")}</div>`;
     }
+
     if (this.custom_show_last_customer_rate) {
       html += `<div class="last-customer-rate-header" style="flex: 1">${__(
         "LC Rate",
@@ -121,8 +155,9 @@ posnext.PointOfSale.ItemCart = class {
 
     html += `<div class="rate-amount-header" style="flex: 1;text-align: left">${__(
       "Amount",
-    )}</div>
-					</div>
+    )}</div>`;
+    html += `</div>`; // Close wrapper div
+    html += `</div>
 					<div class="cart-items-section" ></div>
 					<div class="cart-branch-section"></div>
 					<div class="cart-totals-section"></div>
@@ -1169,7 +1204,10 @@ posnext.PointOfSale.ItemCart = class {
       item_html += `<div class="item-name-desc" style="flex: 3.5">`;
     }
 
-    item_html += `<div class="item-name" style="flex: 4; white-space: normal; word-wrap: break-word; overflow: visible; line-height: 1.2;">
+    item_html += `<div class="your-new-field" style="font-size: 10px; color: #888;">
+					${item_data.item_code}
+				</div>
+				<div class="item-name" style="flex: 4; white-space: normal; word-wrap: break-word; overflow: visible; line-height: 1.2;">
 					${item_data.item_name}
 				</div>
 				${get_description_html(item_data)}
@@ -1488,46 +1526,41 @@ posnext.PointOfSale.ItemCart = class {
           return html;
         }
       } else {
+        // When custom_edit_rate is FALSE - show read-only view
+        let html = `<div class="item-qty-rate" style="flex: 4">
+				<div class="item-qty" style="flex: 1"><span>${item_data.qty || 0}</span></div>`;
+
+        // Conditionally show UOM
+        if (me.custom_show_uom_in_cart) {
+          html += `<div class="item-qty" style="flex: 1"><span>${
+            item_data.uom || ""
+          }</span></div>`;
+        }
+
+        // Conditionally show Batch
+        if (me.show_batch_in_cart) {
+          html += `<div class="item-qty" style="flex: 1"><span>${
+            item_data.batch_no || ""
+          }</span></div>`;
+        }
+
+        // Always show rate/amount
         if (
           item_data.rate &&
           item_data.amount &&
           item_data.rate !== item_data.amount
         ) {
-          return `
-                        <div class="item-qty-rate" style="flex: 4" >
-                            <div class="item-qty" style="flex: 1"><span>${
-                              item_data.qty || 0
-                            }</span></div>
-                            <div class="item-qty" style="flex: 1"><span> ${
-                              item_data.uom
-                            }</span></div>
-							<div class="item-qty" style="flex: 1"><span> ${item_data.batch}</span></div>
-                            <div class="item-rate-amount" style="flex: 1">
-                                <div class="item-rate">${parseFloat(
-                                  item_data.amount,
-                                ).toFixed(2)}</div>
-                                <div class="item-amount">${parseFloat(
-                                  item_data.rate,
-                                ).toFixed(2)}</div>
-                            </div>
-                        </div>`;
+          html += `<div class="item-rate-amount" style="flex: 1">
+					<div class="item-rate">${parseFloat(item_data.amount).toFixed(2)}</div>
+					<div class="item-amount">${parseFloat(item_data.rate).toFixed(2)}</div>
+				</div>`;
         } else {
-          return `
-                        <div class="item-qty-rate" style="flex: 4" >
-                            <div class="item-qty" style="flex: 1" ><span>${
-                              item_data.qty || 0
-                            }</span></div>
-                            <div class="item-qty" style="flex: 1"><span> ${
-                              item_data.uom
-                            }</span></div>
-							<div class="item-qty" style="flex: 1"><span> ${item_data.batch}</span></div>
-                            <div class="item-rate-amount" style="flex: 1">
-                                <div class="item-rate">${parseFloat(
-                                  item_data.rate,
-                                ).toFixed(2)}</div>
-                            </div>
-                        </div>`;
+          html += `<div class="item-rate-amount" style="flex: 1">
+					<div class="item-rate">${parseFloat(item_data.rate).toFixed(2)}</div>
+				</div>`;
         }
+        html += `</div>`;
+        return html;
       }
     }
 
