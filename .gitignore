@@ -3,5 +3,16 @@
 *.egg-info
 *.swp
 tags
-node_modules
-__pycache__
+posnext/docs/current
+posnext/public/dist
+node_modules/
+cypress/videos
+cypress/screenshots
+posnext/public/node_modules
+
+# Package management is managed by bench
+yarn.lock
+
+# Docs
+docs/.vitepress/dist
+docs/.vitepress/cache

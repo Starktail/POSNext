@@ -1,146 +1,137 @@
-# POSNext Documentation
+<div align="center" markdown="1">
 
-## 🚀 Update Note
+<img src="https://raw.githubusercontent.com/frappe/erpnext/develop/erpnext/public/images/erpnext-logo.png" width="80" />
 
-We have introduced an upgraded branch (**Version 15**) for POSNext, fully compatible with **ERPNext Version 14 and Version 15**. In this update, the POS Invoice step has been streamlined, and invoices are now created directly within the **Sales Invoice** module, enhancing efficiency and simplifying the workflow.
 
----
+# POSNext
 
-## 📖 Introduction
+**POSNext for ERPNext**
+![demo screenshot](docs/images/screenshot.png)
+</div>
 
-POSNext is an **open-source Point of Sale (POS) system** designed specifically for ERPNext. It is a fork of the default ERPNext POS, enriched with additional features inspired by **POSAwesome** and further innovations to meet the demands of modern retail and business environments. POSNext serves as a **flexible, customizable alternative** to POSAwesome, offering users improved adaptability and enhanced functionalities.
 
----
+### POSNext
 
-## 🏁 Getting Started
+![CI workflow](#)
+![codecov](#)
 
-POSNext is integrated with ERPNext’s default POS module. To begin using POSNext, ensure you have an **active installation of ERPNext**.
+POSNext is an **open-source Point of Sale (POS) system** designed specifically for ERPNext. This repo is a fork of POSNext, which is a fork of the default ERPNext POS, enriched with additional features inspired by **POSAwesome** and further innovations to meet the demands of modern retail and business environments. POSNext serves as a **flexible, customizable alternative** to POSAwesome, offering users improved adaptability and enhanced functionalities.
 
-### 📌 Prerequisites
-- A running instance of **ERPNext Version 15 or 14**
 
----
+### License
 
-## 🔧 Setting Up POSNext
+MIT
 
-### 📥 Installation
-- **Available on Frappe Cloud Marketplace**
 
-### ⚙️ Configuration
+### Features
 
-1. **Access POS Profile Settings**: Navigate to the POS Profile settings within ERPNext.
-2. **Configure Basic Settings**: Set up essential configurations such as currency, default warehouse, and user-specific settings.
-3. **Assign User Roles and Permissions**: Define user roles and permissions tailored to POS operations, ensuring access control and security.
+- Full Compatibility with ERPNext POS Features
+- Profile Lock in POS Settings
+- Show Order List Button
+- Show Held Button
+- Mobile Number-Based Customer Identification
+- Show Checkout Button
+- Show Only List View
+- Show Only Card View
+- Show Open Form View
+- Show Toggle for Recent Orders
+- Save as Draft Option
+- Close POS Option
+- Default View Setting (Card/List)
+- Allow Adding New Items on Separate Lines
+- Display Posting Date
+- Show OEM Part Number
+- Show Logical Rack Location
+- Edit Rate and UOM (Unit of Measure)
+- Enable Credit Sales
+- Add Additional Notes
+- Include and Exclude Tax Options
+- Display Alternative Items for POS Search
+- Configure Mobile Number Length
+- Send Invoice via WhatsApp
+- Customizable POS Profile
+- Credit Sale
+- Incoming Rate
 
-### ✅ Features & Enhancements
+### User documentation
 
-#### 🔄 Full Compatibility with ERPNext POS Features
-- POSNext retains all **core ERPNext POS** functionalities, ensuring seamless integration with existing ERPNext features.
+📄 POSNext: https://[yoursite].com/posnext
 
-#### 🔐 Profile Lock in POS Settings
-- **Make POS settings read-only** to prevent unauthorized changes and maintain configuration integrity.
+### Installation
 
-#### 📋 Show Order List Button
-- Adds an **"Order List"** button in POS, allowing users to conveniently view all past orders.
+You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
-#### 🛒 Show Held Button
-- Enables users to **place orders on hold** and complete them later.
+```bash
+cd $PATH_TO_YOUR_BENCH
+bench get-app $URL_OF_THIS_REPO --branch develop
+bench install-app posnext
+```
 
-#### 📱 Mobile Number-Based Customer Identification
-- **Locks the customer field** and uses mobile numbers for customer identification, ensuring accuracy.
+### Development
 
-#### 🏁 Show Checkout Button
-- Adds a **"Checkout"** button for easy finalization of transactions.
+#### Tests
 
-#### 🔳 Show Only List View
-- Limits the POS interface to **List View**, displaying item details in a structured list format.
+To run unit tests:
 
-#### 🃏 Show Only Card View
-- Configures POS to display items exclusively in **Card View**, enhancing item selection with a visual card layout.
+```shell
+bench --site test_site run-tests --app posnext --coverage
+```
 
-#### 📝 Show Open Form View
-- Adds an **optional detailed form view** within the POS menu for expanded transaction details.
+To run UI/integration tests:
 
-#### 🔍 Show Toggle for Recent Orders
-- Enables a **toggle switch** in POS for viewing recent transactions.
+The following depencies are required
+```shell
+sudo apt update
+# Dependencies for cypress: https://docs.cypress.io/guides/continuous-integration/introduction#UbuntuDebian
+sudo apt-get install libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
 
-#### 📂 Save as Draft Option
-- Allows users to **save orders as drafts** for later review or editing.
+sudo apt-get install chromium
+```
 
-#### ❌ Close POS Option
-- Adds a **POS Close** option for session management and security.
+```shell
+bench --site test_site run-ui-tests posnext --headless --browser chromium
+```
 
-#### 🎛️ Default View Setting (Card/List)
-- Allows users to **choose a default layout** between Card View and List View.
+#### Contributing
 
-#### ➕ Allow Adding New Items on Separate Lines
-- Enables users to **add new items on individual lines**, improving item organization.
+This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
 
-#### 📅 Display Posting Date
-- Shows the **transaction posting date** in POS for enhanced record-keeping.
+```bash
+cd apps/posnext
+pre-commit install
 
-#### 🔢 Show OEM Part Number
-- Displays the **OEM part number** of items in POS for quick identification.
+#(optional) Run against all the files
+pre-commit run --all-files
+```
 
-#### 📍 Show Logical Rack Location
-- Displays the **logical rack location** of items in POS, assisting in efficient inventory management.
+Pre-commit is configured to use the following tools for checking and formatting your code:
 
-#### 💰 Edit Rate and UOM (Unit of Measure)
-- **Modify item rates and UOMs** directly in POS for pricing flexibility.
+- ruff
+- eslint
+- prettier
+- pyupgrade
 
-#### 💳 Enable Credit Sales
-- Supports **credit sales**, allowing customers to purchase on credit terms.
 
-#### 🗒️ Add Additional Notes
-- Provides an option to **add comments or instructions** to transactions.
+We use [Semgrep](https://semgrep.dev/docs/getting-started/) rules specific to [Frappe Framework](https://github.com/frappe/frappe)
+```shell
+# Install semgrep
+python3 -m pip install semgrep
 
-#### 🏦 Include and Exclude Tax Options
-- Allows users to **include or exclude tax** from transactions.
+# Clone the rules repository
+git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
 
-#### 🔄 Display Alternative Items for POS Search
-- Shows **alternative items** during searches, useful for substitutions.
+# Run semgrep specifying rules folder as config 
+semgrep --config=/workspace/development/frappe-semgrep-rules/rules apps/posnext
+```
 
-#### 📲 Configure Mobile Number Length
-- Sets **mobile number validation** based on country requirements.
+#### Updating Documentation
 
-#### 🟢 Send Invoice via WhatsApp
-- Enables **sending invoices directly to customers** via WhatsApp.
+For documentation, we use [vitepress](https://vitepress.dev/). You can run `yarn docs:dev` to preview the docs when applying changes
 
-#### ⚙️ Customizable POS Profile
-- Allows **tailored profile adjustments** to support **multi-currency transactions** and other business needs.
+#### CI
 
-#### 💵 Credit Sale
-- Enables **credit sales tracking** for customers making purchases on credit.
+This app can use GitHub Actions for CI. The following workflows are configured:
 
-#### 📊 Incoming Rate
-- Tracks the **cost at which items are received** or procured.
-
----
-
-## ☁️ Deployment Options
-
-### 🚀 Managed Hosting
-Deploy POSNext on **(https://frappecloud.com/marketplace/apps/posnext)** for a hassle-free experience. Frappe Cloud handles installation, updates, security, and support.
-
-### 🔧 Self-Hosting
-To set up POSNext on your own server:
-
-bench get-app branch version-15 https://github.com/exvas/posnext.git
-
-bench setup requirements
-
-bench build --app posnext
-
-bench restart
-
-bench --site [your.site.name] install-app posnext
-
-bench --site [your.site.name] migrate
-
-## 🤝 Contributing
-We welcome contributions! (https://github.com/exvas/POSNext/pulls)
-
-## 📜 License
-POSNext is released under the [MIT License](https://github.com/posnext/app/blob/develop/LICENSE).
-
+- CI: Installs this app and runs unit tests on every push to `develop` branch.
+- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request, as well as [Semgrep](https://semgrep.dev/docs/getting-started/)
 
