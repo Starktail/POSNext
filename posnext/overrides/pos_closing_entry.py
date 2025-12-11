@@ -54,7 +54,7 @@ class PosnextPOSClosingEntry(POSClosingEntry):
                 d.pos_invoice,
                 ["pos_profile", "docstatus", "owner"],
                 as_dict=1,
-            )[0]
+            )
 
             if not pos_invoice_data:
                 invalid_row.setdefault("msg", []).append(
