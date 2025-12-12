@@ -75,6 +75,8 @@ def print_barcodes(item_codes):
 
     return {
         "url": file_doc.file_url,
-        "message": _(f"Generated barcodes for {len(items_with_barcodes)} items."),
+        "message": _("Generated barcodes for {0} items.").format(
+            len(items_with_barcodes)
+        ),
         "is_pdf": True,
     }
