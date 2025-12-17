@@ -13,7 +13,7 @@ from frappe.utils.scheduler import is_scheduler_inactive
 class PosnextPOSInvoiceMergeLog(POSInvoiceMergeLog):
     def serial_and_batch_bundle_reference_for_pos_invoice(self):
         for d in self.pos_invoices:
-            pos_invoice = frappe.get_doc("Sales Invoice", d.pos_invoice)
+            pos_invoice = frappe.get_doc("POS Invoice", d.pos_invoice)
             for table_name in ["items", "packed_items"]:
                 pos_invoice.set_serial_and_batch_bundle(table_name)
 
