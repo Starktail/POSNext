@@ -1,5 +1,4 @@
 import frappe
-from frappe import _
 
 
 def validate_si(doc, method):
