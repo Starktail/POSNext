@@ -1,12 +1,7 @@
 import frappe
-from frappe import _
 
 
 def validate_si(doc, method):
-    if doc.pos_profile:
-        show_branch = frappe.db.get_value("POS Profile", doc.pos_profile, "show_branch")
-        if "branch" not in doc.__dict__ and show_branch == 1:
-            frappe.throw(_("Create Branch Accounting Dimensions."))
     if doc.is_return and doc.is_pos:
         doc.update_outstanding_for_self = 0
         if doc.payments:
