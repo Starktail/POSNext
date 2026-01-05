@@ -9,7 +9,7 @@ import frappe
 from frappe.utils import cint
 from frappe.utils.nestedset import get_root_of
 
-from erpnext.accounts.doctype.pos_invoice.pos_invoice import get_stock_availability
+from posnext.overrides.pos_invoice import get_stock_availability
 from erpnext.accounts.doctype.pos_profile.pos_profile import get_child_nodes, get_item_groups
 from erpnext.stock.utils import scan_barcode
 
@@ -55,14 +55,10 @@ def search_by_term(search_term,custom_show_alternative_item_for_pos_search, ware
 				}
 			)
 
-	item_stock_qty, is_stock_item = get_stock_availability(item_code, warehouse)
-	item_stock_qty = item_stock_qty // item.get("conversion_factor", 1)
-	item.update({"actual_qty": item_stock_qty})
-
-	price = frappe.get_list(
-		doctype="Item Price",
-		filters={
-			"price_list": price_list,
+	stock_result = get_stock_availability(item_code, warehouse)
+	if not stock_result or not isinstance(stock_result, (tuple, list)) or len(stock_result) != 2:
+		frappe.throw(f"Invalid stock availability result for item {item_code}")
+	item_stock_qty, is_stock_item = stock_result
 			"item_code": item_code,
 			"batch_no": batch_no,
 		},
@@ -200,7 +196,10 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
 				item['custom_logical_rack'] = rack[0].rack_id
 		uoms = frappe.get_doc("Item", item.item_code).get("uoms", [])
 		item["custom_item_uoms"] = frappe.db.get_all("UOM Conversion Detail", {"parent": item.item_code}, ["uom"], pluck="uom")
-		item.actual_qty, _ = get_stock_availability(item.item_code, warehouse)
+		stock_result = get_stock_availability(item.item_code, warehouse)
+		if not stock_result or not isinstance(stock_result, (tuple, list)) or len(stock_result) != 2:
+			frappe.throw(f"Invalid stock availability result for item {item.item_code}")
+		item.actual_qty, _ = stock_result
 		item.uom = item.stock_uom
 		item_price = frappe.get_all(
 			"Item Price",
