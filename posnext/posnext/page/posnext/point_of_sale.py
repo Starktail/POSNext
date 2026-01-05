@@ -97,9 +97,18 @@ def search_by_term(search_term,custom_show_alternative_item_for_pos_search, ware
 
 @frappe.whitelist()
 def get_items(start, page_length, price_list, item_group, pos_profile, search_term=""):
-	warehouse, hide_unavailable_items,custom_show_last_incoming_rate, custom_show_alternative_item_for_pos_search,custom_show_logical_rack, custom_skip_stock_transaction_validation = frappe.db.get_value(
-		"POS Profile", pos_profile, ["warehouse", "hide_unavailable_items","custom_show_last_incoming_rate","custom_show_alternative_item_for_pos_search","custom_show_logical_rack", "custom_skip_stock_transaction_validation"]
+	result = frappe.db.get_value(
+		"POS Profile", pos_profile, ["warehouse", "hide_unavailable_items","custom_show_last_incoming_rate","custom_show_alternative_item_for_pos_search","custom_show_logical_rack", "custom_skip_stock_transaction_validation"], as_dict=False
 	)
+	
+	if not result:
+		frappe.throw(f"POS Profile {pos_profile} not found")
+	
+	# Ensure we have exactly 6 values
+	if not isinstance(result, (tuple, list)) or len(result) != 6:
+		frappe.throw(f"Invalid POS Profile configuration. Expected 6 fields but got {len(result) if isinstance(result, (tuple, list)) else 'invalid response'}")
+	
+	warehouse, hide_unavailable_items, custom_show_last_incoming_rate, custom_show_alternative_item_for_pos_search, custom_show_logical_rack, custom_skip_stock_transaction_validation = result
 
 	result = []
 
