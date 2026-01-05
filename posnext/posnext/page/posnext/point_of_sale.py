@@ -126,7 +126,11 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
 	condition = get_conditions(search_term,alt_items)
 	condition += get_item_group_condition(pos_profile)
 
-	lft, rgt = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"])
+	result = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"])
+	if not result:
+		frappe.throw(f"Item Group {item_group} not found")
+	
+	lft, rgt = result
 
 	bin_join_selection, bin_join_condition,bin_valuation_rate,bin_join_condition_valuation = "", "","",""
 	if not custom_skip_stock_transaction_validation:
