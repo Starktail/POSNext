@@ -95,7 +95,7 @@ def search_by_term(search_term,custom_show_alternative_item_for_pos_search, ware
 		)
 
 
-	return {"items": [item]}
+	return [item]
 
 
 @frappe.whitelist()
@@ -118,7 +118,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
 	if search_term:
 		result = search_by_term(search_term,custom_show_alternative_item_for_pos_search, warehouse, price_list) or []
 		if result:
-			return result
+			return {"items": result}
 	alt_items = []
 	if custom_show_alternative_item_for_pos_search:
 		alt_items = frappe.db.sql(""" SELECT * FROM `tabAlternative Items` 
