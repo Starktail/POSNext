@@ -59,6 +59,13 @@ def search_by_term(search_term,custom_show_alternative_item_for_pos_search, ware
 	if not stock_result or not isinstance(stock_result, (tuple, list)) or len(stock_result) != 2:
 		frappe.throw(f"Invalid stock availability result for item {item_code}")
 	item_stock_qty, is_stock_item = stock_result
+	item_stock_qty = item_stock_qty // item.get("conversion_factor", 1)
+	item.update({"actual_qty": item_stock_qty})
+
+	price = frappe.get_list(
+		doctype="Item Price",
+		filters={
+			"price_list": price_list,
 			"item_code": item_code,
 			"batch_no": batch_no,
 		},
