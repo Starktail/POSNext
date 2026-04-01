@@ -6,7 +6,6 @@ import json
 from typing import Dict, Optional
 
 import frappe
-from erpnext.accounts.doctype.pos_invoice.pos_invoice import get_stock_availability
 from erpnext.accounts.doctype.pos_profile.pos_profile import (
     get_child_nodes,
     get_item_groups,
@@ -16,6 +15,8 @@ from frappe.utils import cint
 from frappe.utils.file_manager import save_file
 from frappe.utils.nestedset import get_root_of
 from frappe.utils.pdf import get_pdf
+
+from posnext.overrides.pos_invoice import get_stock_availability
 
 
 def search_by_term(
@@ -57,10 +58,10 @@ def search_by_term(
 
     if barcode:
         barcode_info = next(
-            (x for x in item_doc.get("barcodes", []) if x.barcode == barcode), None
+            filter(lambda x: x.barcode == barcode, item_doc.get("barcodes", [])), None
         )
         if barcode_info and barcode_info.uom:
-            uom = next((x for x in item_doc.uoms if x.uom == barcode_info.uom), {})
+            uom = next(filter(lambda x: x.uom == barcode_info.uom, item_doc.uoms), {})
             item.update(
                 {
                     "uom": barcode_info.uom,
@@ -68,7 +69,14 @@ def search_by_term(
                 }
             )
 
-    item_stock_qty, is_stock_item = get_stock_availability(item_code, warehouse)
+    stock_result = get_stock_availability(item_code, warehouse)
+    if (
+        not stock_result
+        or not isinstance(stock_result, (tuple, list))
+        or len(stock_result) != 2
+    ):
+        frappe.throw(f"Invalid stock availability result for item {item_code}")
+    item_stock_qty, is_stock_item = stock_result
     item_stock_qty = item_stock_qty // item.get("conversion_factor", 1)
     item.update({"actual_qty": item_stock_qty})
 
@@ -104,19 +112,12 @@ def search_by_term(
             }
         )
 
-    return {"items": [item]}
+    return [item]
 
 
 @frappe.whitelist()
 def get_items(start, page_length, price_list, item_group, pos_profile, search_term=""):
-    (
-        warehouse,
-        hide_unavailable_items,
-        custom_show_last_incoming_rate,
-        custom_show_alternative_item_for_pos_search,
-        custom_show_logical_rack,
-        custom_skip_stock_transaction_validation,
-    ) = frappe.db.get_value(
+    result = frappe.db.get_value(
         "POS Profile",
         pos_profile,
         [
@@ -127,7 +128,26 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             "custom_show_logical_rack",
             "custom_skip_stock_transaction_validation",
         ],
+        as_dict=False,
     )
+
+    if not result:
+        frappe.throw(f"POS Profile {pos_profile} not found")
+
+    # Ensure we have exactly 6 values
+    if not isinstance(result, (tuple, list)) or len(result) != 6:
+        frappe.throw(
+            f"Invalid POS Profile configuration. Expected 6 fields but got {len(result) if isinstance(result, (tuple, list)) else 'invalid response'}"
+        )
+
+    (
+        warehouse,
+        hide_unavailable_items,
+        custom_show_last_incoming_rate,
+        custom_show_alternative_item_for_pos_search,
+        custom_show_logical_rack,
+        custom_skip_stock_transaction_validation,
+    ) = result
 
     result = []
 
@@ -142,7 +162,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             or []
         )
         if result:
-            return result
+            return {"items": result}
     alt_items = []
     if custom_show_alternative_item_for_pos_search:
         alt_items = frappe.db.sql(
@@ -162,7 +182,11 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
     condition = get_conditions(search_term, alt_items)
     condition += get_item_group_condition(pos_profile)
 
-    lft, rgt = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"])
+    item_group_result = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"])
+    if not item_group_result:
+        frappe.throw(f"Item Group {item_group} not found")
+
+    lft, rgt = item_group_result
 
     (
         bin_join_selection,
@@ -227,7 +251,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
 
     # return (empty) list if there are no results
     if not items_data:
-        return result
+        return {"items": []}
 
     for item in items_data:
         if custom_show_logical_rack:
@@ -237,13 +261,20 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
                 as_dict=1,
             )
             if len(rack) > 0:
-                item["rack"] = rack[0].rack_id
-                item["custom_logical_rack"] = rack[0].rack_id
+                item["rack"] = rack[0]["rack_id"]
+                item["custom_logical_rack"] = rack[0]["rack_id"]
         uoms = frappe.get_doc("Item", item.item_code).get("uoms", [])
         item["custom_item_uoms"] = frappe.db.get_all(
             "UOM Conversion Detail", {"parent": item.item_code}, ["uom"], pluck="uom"
         )
-        item.actual_qty, _ = get_stock_availability(item.item_code, warehouse)
+        stock_result = get_stock_availability(item.item_code, warehouse)
+        if (
+            not stock_result
+            or not isinstance(stock_result, (tuple, list))
+            or len(stock_result) != 2
+        ):
+            frappe.throw(f"Invalid stock availability result for item {item.item_code}")
+        item.actual_qty, _ = stock_result
         item.uom = item.stock_uom
         item_price = frappe.get_all(
             "Item Price",
@@ -261,7 +292,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             result.append(item)
 
         for price in item_price:
-            uom = next((x for x in uoms if x.uom == price.uom), {})
+            uom = next(filter(lambda x: x.uom == price.uom, uoms), {})
 
             if price.uom != item.stock_uom and uom and uom.conversion_factor:
                 item.actual_qty = item.actual_qty // uom.conversion_factor
@@ -405,7 +436,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_customer = frappe.db.get_all(
-            "POS Invoice",
+            "Sales Invoice",
             filters=fltr1,
             fields=fields,
             page_length=limit,
@@ -418,7 +449,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_name = frappe.db.get_all(
-            "POS Invoice",
+            "Sales Invoice",
             filters=fltr2,
             fields=fields,
             page_length=limit,
@@ -430,7 +461,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         if pos_profile:
             fltr = {"status": status, "pos_profile": pos_profile}
         invoice_list = frappe.db.get_all(
-            "POS Invoice", filters=fltr, fields=fields, page_length=limit
+            "Sales Invoice", filters=fltr, fields=fields, page_length=limit
         )
 
     return invoice_list
@@ -501,7 +532,7 @@ def create_customer(customer):
         obj = {"doctype": "Customer", "customer_name": customer}
 
         frappe.get_doc(obj).insert()
-        # frappe.db.commit()
+        frappe.db.commit()
 
 
 @frappe.whitelist()
@@ -527,7 +558,7 @@ def generate_pdf_and_save(docname, doctype, print_format=None):
 def make_sales_return(source_name, target_doc=None):
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
-    return make_return_doc("POS Invoice", source_name, target_doc)
+    return make_return_doc("Sales Invoice", source_name, target_doc)
 
 
 @frappe.whitelist()
@@ -536,11 +567,10 @@ def get_lcr(customer=None, item_code=None):
     if customer and item_code:
         d = frappe.db.sql(
             f"""
-		SELECT item.rate FROM `tabPOS Invoice Item` item
-		INNER JOIN `tabPOS Invoice` PI ON PI.name=item.parent
-		WHERE PI.customer='{customer}' AND item.item_code='{item_code}'
-		AND PI.docstatus = 1
-		ORDER BY PI.creation desc
+		SELECT item.rate FROM `tabSales Invoice Item` item INNER JOIN `tabSales Invoice` SI ON SI.name=item.parent
+		WHERE SI.customer='{customer}' AND item.item_code='{item_code}'
+		ORDER BY SI.creation desc
+		LIMIT 1
 		""",
             as_dict=True,
         )
