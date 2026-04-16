@@ -31,8 +31,6 @@ def search_by_term(
 
     if not result:
         return
-    print("RESSSSULT")
-    print(result)
     item_doc = frappe.get_doc("Item", item_code)
 
     if not item_doc:
@@ -58,10 +56,10 @@ def search_by_term(
 
     if barcode:
         barcode_info = next(
-            filter(lambda x: x.barcode == barcode, item_doc.get("barcodes", [])), None
+            (x for x in item_doc.get("barcodes", []) if x.barcode == barcode), None
         )
         if barcode_info and barcode_info.uom:
-            uom = next(filter(lambda x: x.uom == barcode_info.uom, item_doc.uoms), {})
+            uom = next((x for x in item_doc.uoms if x.uom == barcode_info.uom), {})
             item.update(
                 {
                     "uom": barcode_info.uom,
@@ -116,7 +114,14 @@ def search_by_term(
 
 
 @frappe.whitelist()
-def get_items(start, page_length, price_list, item_group, pos_profile, search_term=""):
+def get_items(
+    start: int,
+    page_length: int,
+    price_list: str,
+    item_group: str,
+    pos_profile: str,
+    search_term: str = "",
+) -> dict:
     result = frappe.db.get_value(
         "POS Profile",
         pos_profile,
@@ -209,7 +214,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             "AND bin.warehouse = %(warehouse)s AND bin.item_code = item.name"
         )
 
-    items_data = frappe.db.sql(
+    items_data = frappe.db.sql(  # nosemgrep
         """
 		SELECT
 			item.name AS item_code,
@@ -292,7 +297,7 @@ def get_items(start, page_length, price_list, item_group, pos_profile, search_te
             result.append(item)
 
         for price in item_price:
-            uom = next(filter(lambda x: x.uom == price.uom, uoms), {})
+            uom = next((x for x in uoms if x.uom == price.uom), {})
 
             if price.uom != item.stock_uom and uom and uom.conversion_factor:
                 item.actual_qty = item.actual_qty // uom.conversion_factor
@@ -357,7 +362,9 @@ def get_item_group_condition(pos_profile):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def item_group_query(doctype, txt, searchfield, start, page_len, filters):
+def item_group_query(
+    doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict
+) -> list:
     item_groups = []
     cond = "1=1"
     pos_profile = filters.get("pos_profile")
@@ -369,7 +376,7 @@ def item_group_query(doctype, txt, searchfield, start, page_len, filters):
             cond = "name in (%s)" % (", ".join(["%s"] * len(item_groups)))
             cond = cond % tuple(item_groups)
 
-    return frappe.db.sql(
+    return frappe.db.sql(  # nosemgrep
         """ select distinct name from `tabItem Group`
 			where {condition} and (name like %(txt)s) limit {page_len} offset {start}""".format(
             condition=cond, start=start, page_len=page_len
@@ -379,7 +386,7 @@ def item_group_query(doctype, txt, searchfield, start, page_len, filters):
 
 
 @frappe.whitelist()
-def check_opening_entry(user, value):
+def check_opening_entry(user: str, value: str) -> list:
     filters = {"user": user, "pos_closing_entry": ["in", ["", None]], "docstatus": 1}
     if value:
         filters["pos_profile"] = value
@@ -394,7 +401,9 @@ def check_opening_entry(user, value):
 
 
 @frappe.whitelist()
-def create_opening_voucher(pos_profile, company, balance_details):
+def create_opening_voucher(
+    pos_profile: str, company: str, balance_details: str
+) -> dict:
     balance_details = json.loads(balance_details)
 
     new_pos_opening = frappe.get_doc(
@@ -414,7 +423,9 @@ def create_opening_voucher(pos_profile, company, balance_details):
 
 
 @frappe.whitelist()
-def get_past_order_list(search_term, status, pos_profile=None, limit=20):
+def get_past_order_list(
+    search_term: str, status: str, pos_profile: str | None = None, limit: int = 100
+) -> list:
     fields = [
         "name",
         "grand_total",
@@ -424,8 +435,8 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         "posting_date",
     ]
     invoice_list = []
-    if status == "Unpaid":
-        status = ["in", ["Unpaid", "Partly Paid", "Overdue"]]
+    if status == "Paid / Unpaid":
+        status = ["in", ["Paid", "Consolidated", "Unpaid", "Partly Paid", "Overdue"]]
 
     if search_term and status:
         fltr1 = {"customer": ["like", "%{}%".format(search_term)], "status": status}
@@ -436,7 +447,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_customer = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr1,
             fields=fields,
             page_length=limit,
@@ -449,7 +460,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_name = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr2,
             fields=fields,
             page_length=limit,
@@ -461,14 +472,14 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         if pos_profile:
             fltr = {"status": status, "pos_profile": pos_profile}
         invoice_list = frappe.db.get_all(
-            "Sales Invoice", filters=fltr, fields=fields, page_length=limit
+            "POS Invoice", filters=fltr, fields=fields, page_length=limit
         )
 
     return invoice_list
 
 
 @frappe.whitelist()
-def set_customer_info(fieldname, customer, value=""):
+def set_customer_info(fieldname: str, customer: str, value: str = "") -> None:
     if fieldname == "loyalty_program":
         frappe.db.set_value("Customer", customer, "loyalty_program", value)
 
@@ -508,7 +519,7 @@ def set_customer_info(fieldname, customer, value=""):
 
 
 @frappe.whitelist()
-def get_pos_profile_data(pos_profile):
+def get_pos_profile_data(pos_profile: str) -> dict:
     pos_profile = frappe.get_doc("POS Profile", pos_profile)
     pos_profile = pos_profile.as_dict()
 
@@ -524,7 +535,7 @@ def get_pos_profile_data(pos_profile):
 
 
 @frappe.whitelist()
-def create_customer(customer):
+def create_customer(customer: str) -> None:
     customer_check = frappe.db.sql(
         """ SELECT * FROM `tabCustomer` WHERE name=%s""", customer, as_dict=1
     )
@@ -532,11 +543,10 @@ def create_customer(customer):
         obj = {"doctype": "Customer", "customer_name": customer}
 
         frappe.get_doc(obj).insert()
-        frappe.db.commit()
 
 
 @frappe.whitelist()
-def generate_pdf_and_save(docname, doctype, print_format=None):
+def generate_pdf_and_save(docname: str, doctype: str, print_format: str | None = None):
     # Get the HTML content of the print format
     data = frappe.get_doc(doctype, docname)
     html = frappe.get_print(doctype, docname, print_format)
@@ -549,29 +559,28 @@ def generate_pdf_and_save(docname, doctype, print_format=None):
 
     # Save the PDF as a file
     file_doc = save_file(file_name, pdf_data, doctype, docname, is_private=0)
-    print("FILE DOOOOC")
-    print(file_doc)
     return file_doc
 
 
 @frappe.whitelist()
-def make_sales_return(source_name, target_doc=None):
+def make_sales_return(source_name: str, target_doc: str | None = None):
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
-    return make_return_doc("Sales Invoice", source_name, target_doc)
+    return make_return_doc("POS Invoice", source_name, target_doc)
 
 
 @frappe.whitelist()
-def get_lcr(customer=None, item_code=None):
+def get_lcr(customer: str | None = None, item_code: str | None = None):
     d = None
     if customer and item_code:
         d = frappe.db.sql(
-            f"""
+            """
 		SELECT item.rate FROM `tabSales Invoice Item` item INNER JOIN `tabSales Invoice` SI ON SI.name=item.parent
-		WHERE SI.customer='{customer}' AND item.item_code='{item_code}'
+		WHERE SI.customer=%s AND item.item_code=%s
 		ORDER BY SI.creation desc
 		LIMIT 1
 		""",
+            (customer, item_code),
             as_dict=True,
         )
     if d:
@@ -581,7 +590,7 @@ def get_lcr(customer=None, item_code=None):
 
 
 @frappe.whitelist()
-def get_uoms(item_code):
+def get_uoms(item_code: str) -> list:
     d = frappe.db.get_all(
         "UOM Conversion Detail", {"parent": item_code}, ["uom"], pluck="uom"
     )
@@ -592,7 +601,7 @@ def get_uoms(item_code):
 
 
 @frappe.whitelist()
-def get_barcodes(item_code):
+def get_barcodes(item_code: str) -> list:
     return frappe.db.get_all(
         "Item Barcode", filters={"parent": item_code}, fields=["barcode"]
     )

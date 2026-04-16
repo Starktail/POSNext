@@ -72,7 +72,7 @@ posnext.PointOfSale.PastOrderList = class {
       df: {
         label: __("Invoice Status"),
         fieldtype: "Select",
-        options: `Draft\nPaid\nUnpaid\nReturn`,
+        options: `Draft\nPaid / Unpaid\nReturn`,
         placeholder: __("Filter by invoice status"),
         onchange: function () {
           if (me.$component.is(":visible")) me.refresh_list();

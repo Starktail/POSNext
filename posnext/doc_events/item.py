@@ -15,7 +15,7 @@ def validate_item(doc, method):
 
 
 @frappe.whitelist()
-def get_product_bundle_with_items(item_code):
+def get_product_bundle_with_items(item_code: str) -> dict | None:
     bundle = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
 
     if not bundle:
@@ -37,7 +37,7 @@ def get_product_bundle_with_items(item_code):
 
 
 @frappe.whitelist()
-def print_barcodes(item_codes):
+def print_barcodes(item_codes: str | list) -> dict:
     if isinstance(item_codes, str):
         item_codes = json.loads(item_codes)
 
