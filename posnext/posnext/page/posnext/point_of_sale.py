@@ -414,7 +414,7 @@ def create_opening_voucher(pos_profile, company, balance_details):
 
 
 @frappe.whitelist()
-def get_past_order_list(search_term, status, pos_profile=None, limit=20):
+def get_past_order_list(search_term, status, pos_profile=None, limit=100):
     fields = [
         "name",
         "grand_total",
@@ -424,8 +424,8 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         "posting_date",
     ]
     invoice_list = []
-    if status == "Unpaid":
-        status = ["in", ["Unpaid", "Partly Paid", "Overdue"]]
+    if status == "Paid / Unpaid":
+        status = ["in", ["Paid", "Consolidated", "Unpaid", "Partly Paid", "Overdue"]]
 
     if search_term and status:
         fltr1 = {"customer": ["like", "%{}%".format(search_term)], "status": status}
@@ -436,7 +436,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_customer = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr1,
             fields=fields,
             page_length=limit,
@@ -449,7 +449,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
                 "pos_profile": pos_profile,
             }
         invoices_by_name = frappe.db.get_all(
-            "Sales Invoice",
+            "POS Invoice",
             filters=fltr2,
             fields=fields,
             page_length=limit,
@@ -461,7 +461,7 @@ def get_past_order_list(search_term, status, pos_profile=None, limit=20):
         if pos_profile:
             fltr = {"status": status, "pos_profile": pos_profile}
         invoice_list = frappe.db.get_all(
-            "Sales Invoice", filters=fltr, fields=fields, page_length=limit
+            "POS Invoice", filters=fltr, fields=fields, page_length=limit
         )
 
     return invoice_list
@@ -558,7 +558,7 @@ def generate_pdf_and_save(docname, doctype, print_format=None):
 def make_sales_return(source_name, target_doc=None):
     from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
-    return make_return_doc("Sales Invoice", source_name, target_doc)
+    return make_return_doc("POS Invoice", source_name, target_doc)
 
 
 @frappe.whitelist()
