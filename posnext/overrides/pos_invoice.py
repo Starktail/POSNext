@@ -6,7 +6,7 @@ from erpnext.accounts.doctype.pos_invoice.pos_invoice import (
 
 
 @frappe.whitelist()
-def get_stock_availability(item_code, warehouse):
+def get_stock_availability(item_code: str, warehouse: str) -> tuple:
     if frappe.db.get_value("Item", item_code, "is_stock_item"):
         is_stock_item = True
         bin_qty = get_bin_qty(item_code, warehouse)

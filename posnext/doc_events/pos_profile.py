@@ -7,7 +7,7 @@ def validate_pf(doc, method):
 
 
 @frappe.whitelist()
-def get_pos_profile_branch(pos_profile_name):
+def get_pos_profile_branch(pos_profile_name: str) -> dict:
     if not pos_profile_name:
         frappe.throw(_("POS Profile name is required."))
 

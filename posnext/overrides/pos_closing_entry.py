@@ -10,8 +10,7 @@ from posnext.overrides.pos_invoice_merge_log import (
 
 
 @frappe.whitelist()
-def get_pos_invoices(start, end, pos_profile, user):
-    print("HEEEEEEEEEEEEEEEEERE")
+def get_pos_invoices(start: str, end: str, pos_profile: str, user: str) -> list:
     data = frappe.db.sql(
         """
     select

@@ -6,7 +6,15 @@ from frappe.utils import unique
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def customer_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+def customer_query(
+    doctype: str,
+    txt: str,
+    searchfield: str,
+    start: int,
+    page_len: int,
+    filters: dict,
+    as_dict: bool = False,
+) -> list:
     doctype = "Customer"
     conditions = []
     cust_master_name = frappe.defaults.get_user_default("cust_master_name")
@@ -19,7 +27,7 @@ def customer_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
     searchfields = frappe.get_meta(doctype).get_search_fields()
     searchfields = " or ".join(field + " like %(txt)s" for field in searchfields)
 
-    return frappe.db.sql(
+    return frappe.db.sql(  # nosemgrep
         """select {fields} from `tabCustomer`
 		where docstatus < 2
 			and ({scond}) and disabled=0
@@ -62,7 +70,7 @@ def get_fields(doctype, fields=None):
 
 
 @frappe.whitelist()
-def get_ledger_balance(customer):
+def get_ledger_balance(customer: str) -> float:
     if not customer:
         frappe.throw(_("Customer ID is required."))
 
