@@ -9,6 +9,8 @@ posnext.PointOfSale.Payment = class {
     this.custom_edit_rate = settings.custom_edit_rate_and_uom;
     this.custom_show_credit_sales = settings.custom_show_credit_sales;
     this.default_payment = settings.default_payment;
+    this.disable_grand_total_to_default_mop =
+      settings.disable_grand_total_to_default_mop;
     this.current_payments = [];
     this.enable_coupon_code = settings.enable_coupon_code;
 
@@ -410,6 +412,7 @@ posnext.PointOfSale.Payment = class {
   }
 
   auto_set_remaining_amount() {
+    if (this.disable_grand_total_to_default_mop) return;
     const doc = this.events.get_frm().doc;
     const grand_total = cint(frappe.sys_defaults.disable_rounded_total)
       ? doc.grand_total
@@ -593,6 +596,7 @@ posnext.PointOfSale.Payment = class {
   }
 
   focus_on_default_mop() {
+    if (this.disable_grand_total_to_default_mop) return;
     const doc = this.events.get_frm().doc;
     const payments = doc.payments;
     payments.forEach((p) => {
