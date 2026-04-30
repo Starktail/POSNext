@@ -1,6 +1,6 @@
 {
   "name": "posnext",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "author": "Starktail (Pty) Ltd <support@starktail.com>",
   "main": "index.js",
   "devDependencies": {
