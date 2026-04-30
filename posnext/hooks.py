@@ -253,6 +253,10 @@ override_doctype_class = {
     "POS Invoice Merge Log": "posnext.overrides.pos_invoice_merge_log.PosnextPOSInvoiceMergeLog",
 }
 
+override_doctype_dashboards = {
+    "POS Closing Entry": "posnext.overrides.dashboard_overrides.get_dashboard_for_pos_closing_entry",
+}
+
 
 fixtures = [
     {"doctype": "Custom Field", "filters": [["module", "in", ["Posnext"]]]},
