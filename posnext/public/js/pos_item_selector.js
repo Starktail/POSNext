@@ -716,7 +716,7 @@ posnext.PointOfSale.ItemSelector = class {
       df: {
         label: __("Search"),
         fieldtype: "Data",
-        placeholder: __("Search by serial number or barcode"),
+        placeholder: __("Search by item code, name, barcode, or serial number"),
       },
       parent: this.$component.find(".search-field"),
       render_input: true,
