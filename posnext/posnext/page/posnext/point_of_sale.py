@@ -132,6 +132,7 @@ def get_items(
             "custom_show_alternative_item_for_pos_search",
             "custom_show_logical_rack",
             "custom_skip_stock_transaction_validation",
+            "selling_price_list",
         ],
         as_dict=False,
     )
@@ -139,10 +140,10 @@ def get_items(
     if not result:
         frappe.throw(f"POS Profile {pos_profile} not found")
 
-    # Ensure we have exactly 6 values
-    if not isinstance(result, (tuple, list)) or len(result) != 6:
+    # Ensure we have exactly 7 values
+    if not isinstance(result, (tuple, list)) or len(result) != 7:
         frappe.throw(
-            f"Invalid POS Profile configuration. Expected 6 fields but got {len(result) if isinstance(result, (tuple, list)) else 'invalid response'}"
+            f"Invalid POS Profile configuration. Expected 7 fields but got {len(result) if isinstance(result, (tuple, list)) else 'invalid response'}"
         )
 
     (
@@ -152,6 +153,7 @@ def get_items(
         custom_show_alternative_item_for_pos_search,
         custom_show_logical_rack,
         custom_skip_stock_transaction_validation,
+        pos_profile_price_list,
     ) = result
 
     result = []
@@ -292,6 +294,23 @@ def get_items(
             order_by="creation desc",
             limit=1,
         )
+
+        if (
+            not item_price
+            and price_list != pos_profile_price_list
+            and pos_profile_price_list
+        ):
+            item_price = frappe.get_all(
+                "Item Price",
+                fields=["price_list_rate", "currency", "uom", "batch_no"],
+                filters={
+                    "price_list": pos_profile_price_list,
+                    "item_code": item.item_code,
+                    "selling": True,
+                },
+                order_by="creation desc",
+                limit=1,
+            )
 
         if not item_price:
             result.append(item)

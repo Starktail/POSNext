@@ -806,6 +806,7 @@ posnext.PointOfSale.ItemCart = class {
             "mobile_no",
             "image",
             "loyalty_program",
+            "default_price_list",
           ])
           .then(({ message }) => {
             const { loyalty_program } = message;
@@ -1031,6 +1032,20 @@ posnext.PointOfSale.ItemCart = class {
     }
   }
 
+  refresh_totals_display() {
+    const frm = this.events.get_frm();
+    if (!frm || !frm.doc) return;
+    const items = frm.doc.items || [];
+    this.render_net_total(items);
+    this.render_total_item_qty(items);
+    let grand_total = cint(frappe.sys_defaults.disable_rounded_total)
+      ? frm.doc.grand_total
+      : frm.doc.rounded_total;
+    if (!items.length && Math.abs(grand_total) != 0.005) grand_total = 0.0;
+    this.render_grand_total(grand_total);
+    this.render_taxes(frm.doc.taxes);
+  }
+
   update_totals_section(frm) {
     if (!frm) frm = this.events.get_frm();
     frm.cscript.calculate_taxes_and_totals();
@@ -1174,6 +1189,7 @@ posnext.PointOfSale.ItemCart = class {
     this.highlight_checkout_btn(true);
 
     this.update_empty_cart_section(no_of_cart_items);
+    this.refresh_totals_display();
   }
 
   render_cart_item(item_data, $item_to_update) {

@@ -391,6 +391,15 @@ posnext.PointOfSale.Controller = class {
           this.customer_details = details;
           // will add/remove LP payment method
           this.payment.render_loyalty_points_payment_mode();
+          // refresh item prices using the customer's own price list, bypassing
+          // doc.selling_price_list which may not be updated yet at this point
+          if (details && details.default_price_list) {
+            this.item_selector.filter_items({
+              price_list: details.default_price_list,
+            });
+          } else {
+            this.item_selector.filter_items();
+          }
         },
       },
     });

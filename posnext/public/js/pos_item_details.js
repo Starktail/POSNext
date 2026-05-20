@@ -30,7 +30,7 @@ posnext.PointOfSale.ItemDetails = class {
   init_child_components() {
     this.$component.html(
       `<div class="item-details-header">
-				<div class="label">${__("Item Detailss")}</div>
+				<div class="label">${__("Item Details")}</div>
 				<div class="close-btn">
 					<svg width="32" height="32" viewBox="0 0 14 14" fill="none">
 						<path d="M4.93764 4.93759L7.00003 6.99998M9.06243 9.06238L7.00003 6.99998M7.00003 6.99998L4.93764 9.06238L9.06243 4.93759" stroke="#8D99A6"/>
@@ -40,17 +40,19 @@ posnext.PointOfSale.ItemDetails = class {
 			<div class="item-display">
 				<div class="item-name-desc-price">
 					<div class="item-name"></div>
-					<div class="item-desc"></div>
+					<div class="item-code"></div>
 					<div class="item-price"></div>
 				</div>
 				<div class="item-image"></div>
 			</div>
 			<div class="discount-section"></div>
 			<div class="form-container"></div>
-			<div class="serial-batch-container"></div>`,
+			<div class="serial-batch-container"></div>
+			<div class="item-desc"></div>`,
     );
 
     this.$item_name = this.$component.find(".item-name");
+    this.$item_code = this.$component.find(".item-code");
     this.$item_description = this.$component.find(".item-desc");
     this.$item_price = this.$component.find(".item-price");
     this.$item_image = this.$component.find(".item-image");
@@ -121,7 +123,7 @@ posnext.PointOfSale.ItemDetails = class {
   }
 
   render_dom(item) {
-    let { item_name, description, image, price_list_rate } = item;
+    let { item_name, item_code, description, image, price_list_rate } = item;
 
     function get_description_html() {
       if (description) {
@@ -135,6 +137,7 @@ posnext.PointOfSale.ItemDetails = class {
     }
 
     this.$item_name.html(item_name);
+    this.$item_code.html(item_code);
     this.$item_description.html(get_description_html());
     this.$item_price.html(format_currency(price_list_rate, this.currency));
     if (!this.hide_images && image) {
