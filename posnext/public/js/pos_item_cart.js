@@ -806,6 +806,7 @@ posnext.PointOfSale.ItemCart = class {
             "mobile_no",
             "image",
             "loyalty_program",
+            "default_price_list",
           ])
           .then(({ message }) => {
             const { loyalty_program } = message;

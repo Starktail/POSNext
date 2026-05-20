@@ -337,9 +337,15 @@ posnext.PointOfSale.ItemSelector = class {
     });
   }
 
-  get_items({ start = 0, page_length = 40, search_term = "" }) {
+  get_items({
+    start = 0,
+    page_length = 40,
+    search_term = "",
+    price_list: price_list_override = null,
+  }) {
     const doc = this.events.get_frm().doc;
-    const price_list = (doc && doc.selling_price_list) || this.price_list;
+    const price_list =
+      price_list_override || (doc && doc.selling_price_list) || this.price_list;
     let { item_group, pos_profile } = this;
 
     !item_group && (item_group = this.parent_item_group);
@@ -952,7 +958,7 @@ posnext.PointOfSale.ItemSelector = class {
     });
   }
 
-  filter_items({ search_term = "" } = {}) {
+  filter_items({ search_term = "", price_list = null } = {}) {
     if (search_term) {
       search_term = search_term.toLowerCase();
 
@@ -969,7 +975,7 @@ posnext.PointOfSale.ItemSelector = class {
       }
     }
 
-    this.get_items({ search_term }).then(({ message }) => {
+    this.get_items({ search_term, price_list }).then(({ message }) => {
       const { items, serial_no, batch_no, barcode } = message;
       if (search_term && !barcode) {
         this.search_index[search_term] = items;
