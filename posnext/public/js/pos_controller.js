@@ -722,7 +722,11 @@ posnext.PointOfSale.Controller = class {
             field === "qty"
               ? value * item_row.conversion_factor
               : item_row.qty * value;
-          // await this.check_stock_availability(item_row, qty_needed, this.frm.doc.set_warehouse);
+          await this.check_stock_availability(
+            item_row,
+            qty_needed,
+            this.frm.doc.set_warehouse,
+          );
         }
 
         if (this.is_current_item_being_edited(item_row) || from_selector) {
@@ -790,6 +794,29 @@ posnext.PointOfSale.Controller = class {
 
         if (field === "serial_no")
           new_item["qty"] = value.split(`\n`).length || 0;
+
+        if (!this.allow_negative_stock) {
+          const stock_resp = (
+            await this.get_available_stock(
+              item_code,
+              this.frm.doc.set_warehouse,
+            )
+          ).message;
+          const available_qty = stock_resp[0];
+          const is_stock_item = stock_resp[1];
+          if (is_stock_item && !(available_qty > 0)) {
+            frappe.show_alert({
+              message: __(
+                "Item Code: {0} is not available under warehouse {1}.",
+                [item_code.bold(), this.frm.doc.set_warehouse.bold()],
+              ),
+              indicator: "red",
+            });
+            frappe.utils.play_sound("error");
+            return;
+          }
+        }
+
         item_row = this.frm.add_child("items", new_item);
 
         await this.trigger_new_item_events(item_row);

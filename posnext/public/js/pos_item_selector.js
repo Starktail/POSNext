@@ -59,6 +59,7 @@ posnext.PointOfSale.ItemSelector = class {
     this.reload_status = reload_status;
     this.auto_add_item = settings.auto_add_item_to_cart;
     this.auto_search_serial = settings.custom_auto_search_serial_number;
+    this.auto_add_barcode_scan = settings.custom_add_via_barcode_scan;
     if (settings.custom_default_view) {
       view = settings.custom_default_view;
     }
@@ -690,6 +691,7 @@ posnext.PointOfSale.ItemSelector = class {
     this.$component.find(".total-incoming-rate").html("");
     this.$component.find(".item-group-field").html("");
     this.$component.find(".invoice-posting-date").html("");
+    this.$component.find(".barcode-scan-field").remove();
     frappe.db
       .get_single_value("POS Settings", "custom_profile_lock")
       .then((doc) => {
@@ -727,6 +729,23 @@ posnext.PointOfSale.ItemSelector = class {
       parent: this.$component.find(".search-field"),
       render_input: true,
     });
+
+    if (this.auto_add_barcode_scan) {
+      this.$component
+        .find(".filter-section")
+        .append(
+          `<div class="barcode-scan-field" style="grid-column: 1 / span 4; margin-top: var(--margin-xs);"></div>`,
+        );
+      this.barcode_scan_field = frappe.ui.form.make_control({
+        df: {
+          label: __("Barcode"),
+          fieldtype: "Data",
+          placeholder: __("Scan barcode to add item"),
+        },
+        parent: this.$component.find(".barcode-scan-field"),
+        render_input: true,
+      });
+    }
 
     this.item_group_field = frappe.ui.form.make_control({
       df: {
@@ -782,6 +801,9 @@ posnext.PointOfSale.ItemSelector = class {
 
     this.search_field.toggle_label(false);
     this.item_group_field.toggle_label(false);
+    if (this.auto_add_barcode_scan) {
+      this.barcode_scan_field.toggle_label(false);
+    }
     if (this.custom_show_last_incoming_rate) {
       this.total_incoming_rate.toggle_label(false);
     }
@@ -812,6 +834,10 @@ posnext.PointOfSale.ItemSelector = class {
 
   set_search_value(value) {
     $(this.search_field.$input[0]).val(value).trigger("input");
+  }
+
+  set_barcode_value(value) {
+    $(this.barcode_scan_field.$input[0]).val(value).trigger("input");
   }
 
   bind_events() {
@@ -853,10 +879,14 @@ posnext.PointOfSale.ItemSelector = class {
 
           onScan.attachTo(document, {
             onScan: (sScancode) => {
-              if (this.search_field && this.$component.is(":visible")) {
-                this.search_field.set_focus();
-                this.set_search_value(sScancode);
-                this.barcode_scanned = true;
+              if (this.$component.is(":visible")) {
+                if (this.auto_add_barcode_scan && this.barcode_scan_field) {
+                  this.set_barcode_value(sScancode);
+                } else if (this.search_field) {
+                  this.search_field.set_focus();
+                  this.set_search_value(sScancode);
+                  this.barcode_scanned = true;
+                }
               }
             },
           });
@@ -907,6 +937,19 @@ posnext.PointOfSale.ItemSelector = class {
       // 	Boolean(this.search_field.$input.val())
       // );
     });
+
+    if (this.auto_add_barcode_scan && this.barcode_scan_field) {
+      this.barcode_scan_field.$input.on("input", (e) => {
+        clearTimeout(this.last_barcode_scan);
+        this.last_barcode_scan = setTimeout(() => {
+          const barcode_term = e.target.value;
+          if (!barcode_term) return;
+          this.get_items({ search_term: barcode_term }).then(({ message }) => {
+            this.add_exact_barcode_item(message.items, barcode_term);
+          });
+        }, 100);
+      });
+    }
 
     // this.search_field.$input.on('focus', () => {
     // 	this.$clear_search_btn.toggle(
@@ -991,6 +1034,33 @@ posnext.PointOfSale.ItemSelector = class {
   add_filtered_item_to_cart() {
     this.$items_container.find(".item-wrapper").click();
     this.set_search_value("");
+  }
+
+  add_exact_barcode_item(items, barcode_term) {
+    const term = barcode_term.toLowerCase();
+    const exact = items.find(
+      (i) =>
+        i.item_code.toLowerCase() === term ||
+        (i.barcode && i.barcode.toLowerCase() === term),
+    );
+    if (exact) {
+      // Render matched items so the DOM data-attributes are populated, then
+      // click the exact wrapper — identical code path to a manual item click.
+      this.render_item_list(items);
+      this.$items_container
+        .find(`.item-wrapper[data-item-code="${escape(exact.item_code)}"]`)
+        .click();
+      frappe.utils.play_sound("submit");
+      // Restore the full item list
+      this.filter_items();
+    } else {
+      frappe.show_alert({
+        message: __("No items found. Scan barcode again."),
+        indicator: "orange",
+      });
+      frappe.utils.play_sound("error");
+    }
+    this.set_barcode_value("");
   }
 
   resize_selector(minimize) {
